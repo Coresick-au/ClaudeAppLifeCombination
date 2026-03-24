@@ -1,26 +1,12 @@
-import {
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { db } from './firebase';
+/**
+ * Chronicle service — pure helper functions for chronicle state mutations.
+ * All persistence goes through DataContext.
+ */
 import type { ChronicleState, ChronicleAnswer } from '@/types/chronicle.types';
 
-function chronicleRef(uid: string) {
-  return doc(db, 'users', uid, 'chronicle', 'state');
-}
-
-export async function getChronicleState(
-  uid: string,
-): Promise<ChronicleState | null> {
-  const snap = await getDoc(chronicleRef(uid));
-  return snap.exists() ? (snap.data() as ChronicleState) : null;
-}
-
-export async function initChronicleState(uid: string): Promise<void> {
-  await setDoc(chronicleRef(uid), {
+export function createInitialChronicleState(): ChronicleState {
+  const now = new Date().toISOString();
+  return {
     currentChapter: 0,
     currentQuestion: 0,
     xp: 0,
@@ -28,28 +14,30 @@ export async function initChronicleState(uid: string): Promise<void> {
     achievements: [],
     customChapters: [],
     customEvents: [],
-    startedAt: serverTimestamp(),
-    lastPlayedAt: serverTimestamp(),
-  });
+    startedAt: now,
+    lastPlayedAt: now,
+  };
 }
 
-export async function saveAnswer(
-  uid: string,
+export function addAnswer(
+  state: ChronicleState,
   answer: ChronicleAnswer,
-): Promise<void> {
+): ChronicleState {
   const key = `${answer.chapterId}_${answer.questionId}`;
-  await updateDoc(chronicleRef(uid), {
-    [`answers.${key}`]: answer,
-    lastPlayedAt: serverTimestamp(),
-  });
+  return {
+    ...state,
+    answers: { ...state.answers, [key]: answer },
+    lastPlayedAt: new Date().toISOString(),
+  };
 }
 
-export async function updateProgress(
-  uid: string,
+export function updateProgress(
+  state: ChronicleState,
   updates: Partial<ChronicleState>,
-): Promise<void> {
-  await updateDoc(chronicleRef(uid), {
+): ChronicleState {
+  return {
+    ...state,
     ...updates,
-    lastPlayedAt: serverTimestamp(),
-  });
+    lastPlayedAt: new Date().toISOString(),
+  };
 }

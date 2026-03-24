@@ -2,11 +2,11 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import type { ChronicleState, ChronicleAnswer } from '@/types/chronicle.types';
 import { CHAPTERS, TOTAL_QUESTIONS, TOTAL_XP } from '@/features/chronicle/chapters';
 import { ACHIEVEMENTS } from '@/features/chronicle/achievements';
-import { Timestamp } from 'firebase/firestore';
 
 const STORAGE_KEY = 'life-os-chronicle';
 
 function createInitialState(): ChronicleState {
+  const now = new Date().toISOString();
   return {
     currentChapter: 0,
     currentQuestion: 0,
@@ -15,8 +15,8 @@ function createInitialState(): ChronicleState {
     achievements: [],
     customChapters: [],
     customEvents: [],
-    startedAt: Timestamp.now(),
-    lastPlayedAt: Timestamp.now(),
+    startedAt: now,
+    lastPlayedAt: now,
   };
 }
 
@@ -105,7 +105,7 @@ export function useChronicle() {
         chapterId: currentChapterDef.id,
         questionId: currentQuestionDef.id,
         value,
-        answeredAt: Timestamp.now(),
+        answeredAt: new Date().toISOString(),
       };
 
       setState((prev) => {
@@ -113,7 +113,7 @@ export function useChronicle() {
           ...prev,
           answers: { ...prev.answers, [key]: answer },
           xp: prev.xp + currentQuestionDef.xp,
-          lastPlayedAt: Timestamp.now(),
+          lastPlayedAt: new Date().toISOString(),
         };
 
         // Advance to next question or chapter
@@ -137,7 +137,7 @@ export function useChronicle() {
       const chapter = CHAPTERS[prev.currentChapter];
       if (!chapter) return prev;
 
-      const updated = { ...prev, lastPlayedAt: Timestamp.now() };
+      const updated = { ...prev, lastPlayedAt: new Date().toISOString() };
       if (prev.currentQuestion < chapter.questions.length - 1) {
         updated.currentQuestion = prev.currentQuestion + 1;
       } else if (prev.currentChapter < CHAPTERS.length - 1) {
@@ -153,7 +153,7 @@ export function useChronicle() {
       ...prev,
       currentChapter: chapterIndex,
       currentQuestion: questionIndex,
-      lastPlayedAt: Timestamp.now(),
+      lastPlayedAt: new Date().toISOString(),
     }));
   }, []);
 
@@ -174,7 +174,7 @@ export function useChronicle() {
               chapterId: chapter.id,
               questionId: question.id,
               value,
-              answeredAt: Timestamp.now(),
+              answeredAt: new Date().toISOString(),
             };
             xp += question.xp;
           }
@@ -184,7 +184,7 @@ export function useChronicle() {
           ...prev,
           answers: { ...prev.answers, ...answers },
           xp: prev.xp + xp,
-          lastPlayedAt: Timestamp.now(),
+          lastPlayedAt: new Date().toISOString(),
         };
         updatedState.achievements = checkAchievements(updatedState);
         return updatedState;

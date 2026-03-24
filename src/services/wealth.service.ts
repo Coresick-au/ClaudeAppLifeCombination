@@ -1,67 +1,51 @@
-import {
-  collection,
-  doc,
-  getDocs,
-  setDoc,
-  deleteDoc,
-  query,
-  orderBy,
-} from 'firebase/firestore';
-import { db } from './firebase';
+/**
+ * Wealth service — pure helper functions for wealth data mutations.
+ * All persistence goes through DataContext.
+ */
 import type { Property, SalaryRecord, SuperFund } from '@/types/wealth.types';
 
-function propertiesRef(uid: string) {
-  return collection(db, 'users', uid, 'properties');
-}
-
-function salaryRef(uid: string) {
-  return collection(db, 'users', uid, 'salary');
-}
-
-function superRef(uid: string) {
-  return collection(db, 'users', uid, 'super');
-}
-
-export async function getProperties(uid: string): Promise<Property[]> {
-  const snap = await getDocs(propertiesRef(uid));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Property);
-}
-
-export async function saveProperty(
-  uid: string,
+export function upsertProperty(
+  properties: Property[],
   property: Property,
-): Promise<void> {
-  await setDoc(doc(propertiesRef(uid), property.id), property);
+): Property[] {
+  const index = properties.findIndex((p) => p.id === property.id);
+  if (index >= 0) {
+    const updated = [...properties];
+    updated[index] = property;
+    return updated;
+  }
+  return [...properties, property];
 }
 
-export async function deleteProperty(
-  uid: string,
+export function removeProperty(
+  properties: Property[],
   propertyId: string,
-): Promise<void> {
-  await deleteDoc(doc(propertiesRef(uid), propertyId));
+): Property[] {
+  return properties.filter((p) => p.id !== propertyId);
 }
 
-export async function getSalaryHistory(uid: string): Promise<SalaryRecord[]> {
-  const q = query(salaryRef(uid), orderBy('financialYear', 'desc'));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SalaryRecord);
-}
-
-export async function saveSalaryRecord(
-  uid: string,
+export function upsertSalaryRecord(
+  records: SalaryRecord[],
   record: SalaryRecord,
-): Promise<void> {
-  await setDoc(doc(salaryRef(uid), record.id), record);
+): SalaryRecord[] {
+  const index = records.findIndex((r) => r.id === record.id);
+  if (index >= 0) {
+    const updated = [...records];
+    updated[index] = record;
+    return updated;
+  }
+  return [...records, record];
 }
 
-export async function getSuperFunds(uid: string): Promise<SuperFund[]> {
-  const snap = await getDocs(superRef(uid));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SuperFund);
-}
-
-export async function saveSuperFund(
-  uid: string,
+export function upsertSuperFund(
+  funds: SuperFund[],
   fund: SuperFund,
-): Promise<void> {
-  await setDoc(doc(superRef(uid), fund.id), fund);
+): SuperFund[] {
+  const index = funds.findIndex((f) => f.id === fund.id);
+  if (index >= 0) {
+    const updated = [...funds];
+    updated[index] = fund;
+    return updated;
+  }
+  return [...funds, fund];
 }

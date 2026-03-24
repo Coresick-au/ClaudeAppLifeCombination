@@ -1,70 +1,37 @@
-import {
-  collection,
-  doc,
-  getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  orderBy,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { db } from './firebase';
+/**
+ * Journal service — pure helper functions for journal data mutations.
+ * All persistence goes through DataContext.
+ */
 import type { JournalEntry, Thought } from '@/types/journal.types';
 
-function entriesRef(uid: string) {
-  return collection(db, 'users', uid, 'journal');
+export function createJournalEntry(
+  data: Omit<JournalEntry, 'id' | 'createdAt'>,
+): JournalEntry {
+  return {
+    ...data,
+    id: crypto.randomUUID(),
+    createdAt: new Date().toISOString(),
+  };
 }
 
-function thoughtsRef(uid: string) {
-  return collection(db, 'users', uid, 'thoughts');
+export function createThought(
+  data: Omit<Thought, 'id' | 'createdAt'>,
+): Thought {
+  return {
+    ...data,
+    id: crypto.randomUUID(),
+    createdAt: new Date().toISOString(),
+  };
 }
 
-export async function getJournalEntries(uid: string): Promise<JournalEntry[]> {
-  const q = query(entriesRef(uid), orderBy('date', 'desc'));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as JournalEntry);
+export function sortEntriesByDate(entries: JournalEntry[]): JournalEntry[] {
+  return [...entries].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  );
 }
 
-export async function addJournalEntry(
-  uid: string,
-  entry: Omit<JournalEntry, 'id' | 'createdAt'>,
-): Promise<string> {
-  const docRef = await addDoc(entriesRef(uid), {
-    ...entry,
-    createdAt: serverTimestamp(),
-  });
-  return docRef.id;
-}
-
-export async function updateJournalEntry(
-  uid: string,
-  entryId: string,
-  updates: Partial<JournalEntry>,
-): Promise<void> {
-  await updateDoc(doc(entriesRef(uid), entryId), updates);
-}
-
-export async function deleteJournalEntry(
-  uid: string,
-  entryId: string,
-): Promise<void> {
-  await deleteDoc(doc(entriesRef(uid), entryId));
-}
-
-export async function getThoughts(uid: string): Promise<Thought[]> {
-  const q = query(thoughtsRef(uid), orderBy('createdAt', 'desc'));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Thought);
-}
-
-export async function addThought(
-  uid: string,
-  thought: Omit<Thought, 'id' | 'createdAt'>,
-): Promise<string> {
-  const docRef = await addDoc(thoughtsRef(uid), {
-    ...thought,
-    createdAt: serverTimestamp(),
-  });
-  return docRef.id;
+export function sortThoughtsByDate(thoughts: Thought[]): Thought[] {
+  return [...thoughts].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
 }

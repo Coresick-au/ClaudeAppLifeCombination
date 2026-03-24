@@ -1,5 +1,3 @@
-import type { Timestamp } from 'firebase/firestore';
-
 export type ThemeName = 'hearthstone' | 'meadow' | 'darkgold';
 export type UserTheme = 'hearthstone' | 'meadow';
 
@@ -48,11 +46,10 @@ export const EVENT_CATEGORY_COLOURS: Record<EventCategory, string> = {
 };
 
 export interface UserProfile {
-  uid: string;
   displayName: string;
   email: string;
   photoURL?: string;
   theme: UserTheme;
   soundEnabled: boolean;
-  createdAt: Timestamp;
+  createdAt: string;
 }

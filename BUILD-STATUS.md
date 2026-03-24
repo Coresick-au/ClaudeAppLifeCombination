@@ -10,14 +10,16 @@
 | Task | Status | Notes |
 |------|--------|-------|
 | Vite + React + TypeScript + Tailwind scaffold | ✅ Done | Clean build, strict TS |
-| Firebase config (Auth, Firestore, Storage) | ✅ Done | Services wired, rules written |
+| Local file-based data layer | ✅ Done | DataContext + .lifeos.json save/load |
 | Theme system (Hearthstone / Meadow / Dark Gold) | ✅ Done | CSS custom properties, auto-switch on Wealth |
 | Pillar navigation (Record / Reflect / Wealth / Me) | ✅ Done | Bottom nav bar, sticky sub-tabs |
 | Sub-tab navigation per pillar | ✅ Done | 20 tabs across 4 pillars |
-| Auth (Google sign-in) | ✅ Done | Service layer ready, UI not yet wired |
-| Firestore service layer with typed CRUD | ✅ Done | chronicle, journal, wealth, storage services |
-| Type definitions | ✅ Done | chronicle.types, journal.types, wealth.types, shared.types |
+| Type definitions | ✅ Done | chronicle.types, journal.types, wealth.types, shared.types, data.types |
 | Utility functions | ✅ Done | AU dates, AUD currency, spiral geometry |
+| Save/Load UI in header | ✅ Done | 💾 save with unsaved indicator, 📂 load, New button |
+| Welcome screen (New / Load Existing) | ✅ Done | Shown on first load before data is initialised |
+| Unsaved changes warning (beforeunload) | ✅ Done | Browser warns before closing tab with unsaved data |
+| localStorage auto-save drafts | ✅ Done | Draft protection against accidental tab closure |
 
 ---
 
@@ -25,13 +27,13 @@
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Chapter definitions (all 10 chapters with questions) | ✅ Done | 65 questions across 10 chapters, RPG-flavoured prompts |
+| Chapter definitions (all 10 chapters with questions) | ✅ Done | 70 questions across 10 chapters, RPG-flavoured prompts |
 | RPG dialogue box with TypewriterText | ✅ Done | Typewriter animation with skip button |
 | Question input forms (text, textarea, date, select) | ✅ Done | All 4 input types supported |
 | XP system and character stats | ✅ Done | 6 classes: Blank Page → Novice → Journeyman → Veteran → Elder → Legend |
 | Quest Log (completed / skipped / undiscovered) | ✅ Done | Full tracking with chapter grouping |
 | Rewind mechanic | ✅ Done | Jump to any skipped/undiscovered question from Quest Log |
-| Auto-save to localStorage | ✅ Done | Saves on each answer (Firestore integration pending) |
+| Auto-save to localStorage | ✅ Done | Saves on each answer |
 | Sound effects (Tone.js) | ✅ Done | 6 synthesised sounds: bleep, success, fanfare, level-up, achievement, error |
 | Achievement system with toast notifications | ✅ Done | 15 unlockable badges with slide-in toasts |
 | Sample data button (Alex Morgan) | ✅ Done | ~30 Brisbane-flavoured answers, aphantasia-aware |
@@ -43,10 +45,10 @@
 | Task | Status | Notes |
 |------|--------|-------|
 | Journal entry CRUD | ✅ Done | Title, content, category, date, importance, tags |
-| Photo upload to Firebase Storage | 🔲 | Auto-resize before upload (deferred to Phase 6) |
 | Thoughts quick-capture | ✅ Done | Masonry layout with 5 type badges, relative timestamps |
 | Custom events outside chapters | ✅ Done | Freeform entries with categories |
 | Masonry layout for thoughts view | ✅ Done | CSS columns-based masonry |
+| Photo support | 🔲 | Future: base64 data URLs in JSON, or IndexedDB for large photos |
 
 ---
 
@@ -105,27 +107,34 @@
 
 | Issue | Severity | Notes |
 |-------|----------|-------|
-| No login UI yet | Medium | Auth service exists but no sign-in screen — all features will need auth gating |
-| Firebase env vars needed | Blocker for deploy | `.env.local` must be configured with real Firebase project credentials before the app works |
 | No error boundaries | Low | Should add React error boundaries before features get complex |
 | No routing library | Low | Currently using state-based navigation — may want react-router if URLs become important |
 | Mobile responsiveness untested | Low | Desktop-first design, needs phone testing once features land |
+| Photos not yet supported | Low | Future: store as base64 data URLs in JSON, or use IndexedDB for large photos |
+
+---
+
+## Architecture Notes
+
+### Firebase → Local Migration (Complete ✅)
+- **Removed:** Firebase Auth, Firestore, Storage, all Firebase config files, `.env.example`
+- **Added:** `DataContext` (React context holding all app state), `local-data.service.ts` (save/load file helpers), `data.types.ts` (unified `LifeOSData` interface)
+- **Pattern:** Components access data via `useData()` hook from DataContext. Service files are pure helper functions.
+- **File format:** `.lifeos.json` with `version` field for future migrations
+- **Auto-save:** localStorage draft protection (key: `life-os-autosave`)
+- **No server, no auth, no cloud** — everything runs in the browser
 
 ---
 
 ## Recommendations
 
-1. **Set up Firebase project first** — Before building more features, create the Firebase project in the console and add credentials to `.env.local`. Without this, nothing persists.
+1. **Test on phone early** — The bottom nav is designed for mobile. Worth checking the feel on your actual phone once Phase 2 is playable.
 
-2. **Build Chronicle next** — It's the centrepiece and the most complex feature. Getting it right sets the tone for everything else.
+2. **Photo handling** — When photo support lands, store small photos as base64 data URLs in the JSON. For larger collections, consider IndexedDB with references in the JSON.
 
 3. **Consider react-router** — If you want shareable URLs (e.g. linking to a specific chapter or property), adding a router early is easier than retrofitting later.
 
-4. **Test on phone early** — The bottom nav is designed for mobile. Worth checking the feel on your actual phone once Phase 2 is playable.
-
-5. **Photo compression** — When photo upload lands (Phase 3), add client-side compression before uploading to Firebase Storage to keep costs down.
-
-6. **Seed data import** — The verified financial data from the brief (properties, salary, super) should be importable via a JSON file rather than manual entry.
+4. **Seed data import** — The verified financial data from the brief (properties, salary, super) should be importable via a JSON file rather than manual entry.
 
 ---
 
@@ -133,7 +142,7 @@
 
 ```
 src/
-├── App.tsx                          # Main app with pillar/tab routing
+├── App.tsx                          # Main app with pillar/tab routing + save/load UI
 ├── main.tsx                         # Entry point
 ├── index.css                        # Tailwind + skeleton loader
 ├── vite-env.d.ts                    # Vite type declarations
@@ -146,22 +155,23 @@ src/
 │   ├── pillarConfig.ts              # Pillar + tab definitions
 │   ├── PillarNav.tsx                # Bottom navigation bar
 │   └── SubNav.tsx                   # Per-pillar tab bar
-├── features/                        # Feature modules (placeholder views)
+├── features/                        # Feature modules
 │   ├── chronicle/ChronicleEngine.tsx
 │   ├── journal/ (9 components)
 │   ├── wealth/ (5 components)
 │   ├── profile/ (4 components)
 │   └── export/ExportHub.tsx
-├── services/                        # Firebase service layer
-│   ├── firebase.ts                  # Firebase init
-│   ├── auth.ts                      # Google auth
-│   ├── chronicle.service.ts         # Chronicle CRUD
-│   ├── journal.service.ts           # Journal + thoughts CRUD
-│   ├── wealth.service.ts            # Properties, salary, super CRUD
-│   └── storage.service.ts           # Photo upload/delete
+├── services/                        # Data layer
+│   ├── DataContext.tsx               # React context — single source of truth
+│   ├── local-data.service.ts        # File save/load/create helpers
+│   ├── chronicle.service.ts         # Chronicle pure helper functions
+│   ├── journal.service.ts           # Journal pure helper functions
+│   └── wealth.service.ts            # Wealth pure helper functions
 ├── hooks/
-│   └── useAuth.ts                   # Auth state hook
+│   ├── useChronicle.ts              # Chronicle game logic
+│   └── useSound.ts                  # Tone.js sound effects
 ├── types/                           # TypeScript interfaces
+│   ├── data.types.ts                # LifeOSData — unified data shape
 │   ├── shared.types.ts              # Pillars, themes, categories
 │   ├── chronicle.types.ts           # Chronicle data models
 │   ├── journal.types.ts             # Journal + thoughts models

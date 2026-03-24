@@ -1,4 +1,3 @@
-import type { Timestamp } from 'firebase/firestore';
 import type { EventCategory } from './shared.types';
 
 export interface JournalEntry {
@@ -6,13 +5,13 @@ export interface JournalEntry {
   title: string;
   content: string;
   category: EventCategory;
-  date: Timestamp;
+  date: string;
   year: number;
   month?: number;
   tags: string[];
   photoUrls: string[];
   importance: 1 | 2 | 3 | 4 | 5;
-  createdAt: Timestamp;
+  createdAt: string;
 }
 
 export type ThoughtType = 'thought' | 'pondering' | 'note' | 'question' | 'idea';
@@ -21,13 +20,13 @@ export interface Thought {
   id: string;
   type: ThoughtType;
   content: string;
-  createdAt: Timestamp;
+  createdAt: string;
 }
 
 export interface LetterToFuture {
   id: string;
   content: string;
-  unlockDate: Timestamp;
-  createdAt: Timestamp;
+  unlockDate: string;
+  createdAt: string;
   isUnlocked: boolean;
 }

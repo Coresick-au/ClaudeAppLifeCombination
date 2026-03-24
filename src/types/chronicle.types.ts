@@ -1,5 +1,3 @@
-import type { Timestamp } from 'firebase/firestore';
-
 export type QuestionType = 'text' | 'textarea' | 'date' | 'select';
 
 export interface ChapterQuestion {
@@ -27,7 +25,7 @@ export interface ChronicleAnswer {
   chapterId: string;
   questionId: string;
   value: string;
-  answeredAt: Timestamp;
+  answeredAt: string;
   photoUrl?: string;
   followUpQuestion?: string;
   followUpAnswer?: string;
@@ -42,8 +40,8 @@ export interface ChronicleState {
   achievements: string[];
   customChapters: ChapterDefinition[];
   customEvents: CustomEvent[];
-  startedAt: Timestamp;
-  lastPlayedAt: Timestamp;
+  startedAt: string;
+  lastPlayedAt: string;
 }
 
 export interface CustomEvent {
@@ -52,7 +50,7 @@ export interface CustomEvent {
   description: string;
   category: string;
   date: string;
-  createdAt: Timestamp;
+  createdAt: string;
 }
 
 export type CharacterClass =
