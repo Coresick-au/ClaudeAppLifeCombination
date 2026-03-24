@@ -1,0 +1,17 @@
+export const meadowVars: Record<string, string> = {
+  '--color-surface': '#faf6ef',
+  '--color-surface-alt': '#f0ebe0',
+  '--color-surface-card': '#ffffff',
+  '--color-surface-card-border': 'rgba(107, 143, 113, 0.2)',
+  '--color-accent': '#6b8f71',
+  '--color-accent-hover': '#5a7d60',
+  '--color-text-primary': '#3a3530',
+  '--color-text-secondary': '#6b6560',
+  '--color-border': 'rgba(107, 143, 113, 0.2)',
+  '--color-input-bg': '#ffffff',
+  '--color-input-border': 'rgba(107, 143, 113, 0.3)',
+  '--color-nav-bg': '#f0ebe0',
+  '--color-nav-active': 'rgba(107, 143, 113, 0.15)',
+  '--color-skeleton': '#f0ebe0',
+  '--color-skeleton-shine': '#e5dfd4',
+};

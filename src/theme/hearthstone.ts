@@ -1,0 +1,17 @@
+export const hearthstoneVars: Record<string, string> = {
+  '--color-surface': '#1a1510',
+  '--color-surface-alt': '#231e16',
+  '--color-surface-card': '#2d2519',
+  '--color-surface-card-border': 'rgba(139, 109, 71, 0.08)',
+  '--color-accent': '#c9a84c',
+  '--color-accent-hover': '#d4b85e',
+  '--color-text-primary': '#e8dcc8',
+  '--color-text-secondary': '#a89880',
+  '--color-border': 'rgba(139, 109, 71, 0.2)',
+  '--color-input-bg': '#1e1912',
+  '--color-input-border': 'rgba(139, 109, 71, 0.3)',
+  '--color-nav-bg': '#161210',
+  '--color-nav-active': 'rgba(201, 168, 76, 0.15)',
+  '--color-skeleton': '#2d2519',
+  '--color-skeleton-shine': '#3d3525',
+};

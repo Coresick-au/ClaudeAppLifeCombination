@@ -1,0 +1,17 @@
+export const darkgoldVars: Record<string, string> = {
+  '--color-surface': '#0f1117',
+  '--color-surface-alt': '#16181f',
+  '--color-surface-card': '#1e2030',
+  '--color-surface-card-border': 'rgba(201, 168, 76, 0.2)',
+  '--color-accent': '#C9A84C',
+  '--color-accent-hover': '#d4b85e',
+  '--color-text-primary': '#e2e4e9',
+  '--color-text-secondary': '#8b8e96',
+  '--color-border': 'rgba(201, 168, 76, 0.15)',
+  '--color-input-bg': '#16181f',
+  '--color-input-border': 'rgba(201, 168, 76, 0.3)',
+  '--color-nav-bg': '#0c0e14',
+  '--color-nav-active': 'rgba(201, 168, 76, 0.15)',
+  '--color-skeleton': '#1e2030',
+  '--color-skeleton-shine': '#282a3a',
+};
