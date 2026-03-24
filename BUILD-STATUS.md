@@ -21,32 +21,32 @@
 
 ---
 
-## Phase 2 — Chronicle Engine 🔲 NOT STARTED
+## Phase 2 — Chronicle Engine ✅ COMPLETE
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Chapter definitions (all 10 chapters with questions) | 🔲 | Data file with prompts, XP values, types |
-| RPG dialogue box with TypewriterText | 🔲 | Typewriter animation component |
-| Question input forms (text, textarea, date, select) | 🔲 | Per-question type rendering |
-| XP system and character stats | 🔲 | Blank Page → Novice → ... → Legend |
-| Quest Log (completed / skipped / undiscovered) | 🔲 | Track all questions across chapters |
-| Rewind mechanic | 🔲 | Jump back to any unanswered question |
-| Auto-save to Firestore | 🔲 | Save on each answer |
-| Sound effects (Tone.js) | 🔲 | Bleeps, fanfares, level-up, mute button |
-| Achievement system with toast notifications | 🔲 | 15 unlockable badges |
-| Sample data button (Alex Morgan) | 🔲 | Brisbane-flavoured test data |
+| Chapter definitions (all 10 chapters with questions) | ✅ Done | 65 questions across 10 chapters, RPG-flavoured prompts |
+| RPG dialogue box with TypewriterText | ✅ Done | Typewriter animation with skip button |
+| Question input forms (text, textarea, date, select) | ✅ Done | All 4 input types supported |
+| XP system and character stats | ✅ Done | 6 classes: Blank Page → Novice → Journeyman → Veteran → Elder → Legend |
+| Quest Log (completed / skipped / undiscovered) | ✅ Done | Full tracking with chapter grouping |
+| Rewind mechanic | ✅ Done | Jump to any skipped/undiscovered question from Quest Log |
+| Auto-save to localStorage | ✅ Done | Saves on each answer (Firestore integration pending) |
+| Sound effects (Tone.js) | ✅ Done | 6 synthesised sounds: bleep, success, fanfare, level-up, achievement, error |
+| Achievement system with toast notifications | ✅ Done | 15 unlockable badges with slide-in toasts |
+| Sample data button (Alex Morgan) | ✅ Done | ~30 Brisbane-flavoured answers, aphantasia-aware |
 
 ---
 
-## Phase 3 — Journal & Thoughts 🔲 NOT STARTED
+## Phase 3 — Journal & Thoughts ✅ COMPLETE
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Journal entry CRUD | 🔲 | Title, content, category, date, photos, importance |
-| Photo upload to Firebase Storage | 🔲 | Auto-resize before upload |
-| Thoughts quick-capture | 🔲 | Masonry layout with type badges |
-| Custom events outside chapters | 🔲 | Freeform life entries |
-| Masonry layout for thoughts view | 🔲 | |
+| Journal entry CRUD | ✅ Done | Title, content, category, date, importance, tags |
+| Photo upload to Firebase Storage | 🔲 | Auto-resize before upload (deferred to Phase 6) |
+| Thoughts quick-capture | ✅ Done | Masonry layout with 5 type badges, relative timestamps |
+| Custom events outside chapters | ✅ Done | Freeform entries with categories |
+| Masonry layout for thoughts view | ✅ Done | CSS columns-based masonry |
 
 ---
 
