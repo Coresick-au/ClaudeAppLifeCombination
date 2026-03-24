@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en-AU" data-theme="hearthstone">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Life OS — Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root { --transition: 0.3s ease; }
+
+  /* === HEARTHSTONE THEME === */
+  [data-theme="hearthstone"] {
+    --surface: #1a1510;
+    --surface-alt: #231e16;
+    --surface-card: #2d2519;
+    --card-border: rgba(139,109,71,0.15);
+    --accent: #c9a84c;
+    --accent-hover: #d4b85e;
+    --text-1: #e8dcc8;
+    --text-2: #a89880;
+    --border: rgba(139,109,71,0.2);
+    --nav-bg: #161210;
+    --nav-active: rgba(201,168,76,0.15);
+    --input-bg: #1e1912;
+    --input-border: rgba(139,109,71,0.3);
+  }
+
+  /* === MEADOW THEME === */
+  [data-theme="meadow"] {
+    --surface: #faf6ef;
+    --surface-alt: #f0ebe0;
+    --surface-card: #ffffff;
+    --card-border: rgba(107,143,113,0.2);
+    --accent: #6b8f71;
+    --accent-hover: #5a7d60;
+    --text-1: #3a3530;
+    --text-2: #6b6560;
+    --border: rgba(107,143,113,0.2);
+    --nav-bg: #f0ebe0;
+    --nav-active: rgba(107,143,113,0.15);
+    --input-bg: #ffffff;
+    --input-border: rgba(107,143,113,0.3);
+  }
+
+  /* === DARK GOLD THEME === */
+  [data-theme="darkgold"] {
+    --surface: #0f1117;
+    --surface-alt: #16181f;
+    --surface-card: #1e2030;
+    --card-border: rgba(201,168,76,0.2);
+    --accent: #C9A84C;
+    --accent-hover: #d4b85e;
+    --text-1: #e2e4e9;
+    --text-2: #8b8e96;
+    --border: rgba(201,168,76,0.15);
+    --nav-bg: #0c0e14;
+    --nav-active: rgba(201,168,76,0.15);
+    --input-bg: #16181f;
+    --input-border: rgba(201,168,76,0.3);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--surface);
+    color: var(--text-1);
+    min-height: 100vh;
+    min-height: 100dvh;
+    transition: background var(--transition), color var(--transition);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* === HEADER === */
+  .header {
+    background: var(--surface-alt);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    transition: background var(--transition), border-color var(--transition);
+  }
+  .header h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--accent);
+    transition: color var(--transition);
+  }
+  .theme-toggle {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 3px;
+    border: 1px solid var(--border);
+  }
+  .theme-btn {
+    padding: 6px 10px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text-2);
+    transition: all 0.2s;
+  }
+  .theme-btn.active {
+    background: var(--accent);
+    color: #1a1510;
+  }
+
+  /* === SUB-NAV TABS === */
+  .sub-nav {
+    display: flex;
+    overflow-x: auto;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 49px;
+    z-index: 90;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    transition: background var(--transition), border-color var(--transition);
+  }
+  .sub-nav::-webkit-scrollbar { display: none; }
+  .sub-tab {
+    padding: 12px 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    white-space: nowrap;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--text-2);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .sub-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .sub-tab:hover { color: var(--text-1); }
+
+  /* === MAIN CONTENT === */
+  .content {
+    padding: 20px 16px 100px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .placeholder-card {
+    background: var(--surface-card);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: background var(--transition), border-color var(--transition);
+  }
+  .placeholder-card h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text-1);
+  }
+  .placeholder-card p {
+    color: var(--text-2);
+    line-height: 1.6;
+    font-size: 0.95rem;
+  }
+  .placeholder-card .rpg-text {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.65rem;
+    color: var(--accent);
+    margin-top: 12px;
+    line-height: 1.8;
+  }
+
+  /* Skeleton loaders */
+  .skeleton {
+    border-radius: 6px;
+    height: 16px;
+    margin: 10px 0;
+    background: linear-gradient(90deg, var(--surface-card) 25%, var(--border) 50%, var(--surface-card) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+  .skeleton.w-75 { width: 75%; }
+  .skeleton.w-50 { width: 50%; }
+  .skeleton.w-90 { width: 90%; }
+  .skeleton.h-32 { height: 120px; border-radius: 10px; }
+  @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+
+  /* Category dots */
+  .category-dots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .cat-dot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--text-2);
+  }
+  .cat-dot span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    background: var(--surface-card);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 16px 12px;
+    text-align: center;
+    transition: background var(--transition), border-color var(--transition);
+  }
+  .stat-card .value {
+    font-family: 'Fraunces', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .stat-card .label {
+    font-size: 0.7rem;
+    color: var(--text-2);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* XP bar */
+  .xp-bar-outer {
+    background: var(--surface);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    height: 20px;
+    overflow: hidden;
+    margin: 12px 0;
+  }
+  .xp-bar-inner {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+    border-radius: 20px;
+    transition: width 1s ease;
+    width: 0%;
+  }
+
+  /* === BOTTOM NAV === */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: var(--nav-bg);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    height: 64px;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    transition: background var(--transition), border-color var(--transition);
+  }
+  .nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-2);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+  }
+  .nav-btn .icon { font-size: 1.3rem; }
+  .nav-btn .label { font-size: 0.65rem; font-weight: 600; }
+  .nav-btn.active {
+    background: var(--nav-active);
+    color: var(--accent);
+  }
+
+  /* === WEALTH-SPECIFIC CHART MOCK === */
+  .chart-mock {
+    background: var(--surface);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    height: 160px;
+    display: flex;
+    align-items: flex-end;
+    padding: 16px;
+    gap: 8px;
+    margin: 16px 0;
+  }
+  .chart-bar {
+    flex: 1;
+    background: linear-gradient(to top, var(--accent), var(--accent-hover));
+    border-radius: 4px 4px 0 0;
+    min-height: 10px;
+    opacity: 0;
+    animation: bar-grow 0.6s ease forwards;
+  }
+  @keyframes bar-grow { to { opacity: 1; } }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <h1>Life OS</h1>
+  <div class="theme-toggle">
+    <button class="theme-btn active" onclick="setTheme('hearthstone')">Hearth</button>
+    <button class="theme-btn" onclick="setTheme('meadow')">Meadow</button>
+  </div>
+</div>
+
+<!-- SUB-NAV (dynamic) -->
+<div class="sub-nav" id="subNav"></div>
+
+<!-- CONTENT (dynamic) -->
+<div class="content" id="content"></div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav" id="bottomNav">
+  <button class="nav-btn active" onclick="setPillar('record')">
+    <span class="icon">📜</span><span class="label">Record</span>
+  </button>
+  <button class="nav-btn" onclick="setPillar('reflect')">
+    <span class="icon">🔮</span><span class="label">Reflect</span>
+  </button>
+  <button class="nav-btn" onclick="setPillar('wealth')">
+    <span class="icon">💰</span><span class="label">Wealth</span>
+  </button>
+  <button class="nav-btn" onclick="setPillar('me')">
+    <span class="icon">👤</span><span class="label">Me</span>
+  </button>
+</div>
+
+<script>
+const pillars = {
+  record: {
+    tabs: ['Chronicle', 'Journal', 'Thoughts', 'Events'],
+    defaultTab: 0
+  },
+  reflect: {
+    tabs: ['Spiral', 'Timeline', 'Heatmap', 'On This Day', 'Epochs', 'Reflections'],
+    defaultTab: 0
+  },
+  wealth: {
+    tabs: ['Dashboard', 'Properties', 'Salary', 'Super', 'Spending'],
+    defaultTab: 0
+  },
+  me: {
+    tabs: ['Profile', 'Connections', 'Letters', 'Export', 'Settings'],
+    defaultTab: 0
+  }
+};
+
+let currentPillar = 'record';
+let currentTab = 0;
+let userTheme = 'hearthstone';
+
+function setTheme(theme) {
+  userTheme = theme;
+  applyTheme();
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent.toLowerCase().startsWith(theme.substring(0, 5)));
+  });
+}
+
+function applyTheme() {
+  const effective = currentPillar === 'wealth' ? 'darkgold' : userTheme;
+  document.documentElement.setAttribute('data-theme', effective);
+}
+
+function setPillar(pillar) {
+  currentPillar = pillar;
+  currentTab = pillars[pillar].defaultTab;
+  applyTheme();
+  renderNav();
+  renderSubNav();
+  renderContent();
+}
+
+function setTab(index) {
+  currentTab = index;
+  renderSubNav();
+  renderContent();
+}
+
+function renderNav() {
+  document.querySelectorAll('.nav-btn').forEach((btn, i) => {
+    const ids = ['record', 'reflect', 'wealth', 'me'];
+    btn.classList.toggle('active', ids[i] === currentPillar);
+  });
+}
+
+function renderSubNav() {
+  const tabs = pillars[currentPillar].tabs;
+  document.getElementById('subNav').innerHTML = tabs.map((t, i) =>
+    `<button class="sub-tab${i === currentTab ? ' active' : ''}" onclick="setTab(${i})">${t}</button>`
+  ).join('');
+}
+
+// Content generators per pillar/tab
+const content = {
+  record: [
+    // Chronicle
+    () => `
+      <div class="placeholder-card">
+        <h2>Chronicle</h2>
+        <p>Your life story as an RPG. Walk through 10 chapters — from birth to present day — answering questions that build your personal memoir.</p>
+        <div class="rpg-text">CHAPTER I: THE BEGINNING</div>
+        <div class="rpg-text">> What is the name of your character?</div>
+        <div class="xp-bar-outer"><div class="xp-bar-inner" style="width:15%"></div></div>
+        <p style="font-size:0.75rem;color:var(--text-2)">XP: 150 / 1000 &bull; Class: Novice &bull; Chapter 1 of 10</p>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="value">0</div><div class="label">Quests Done</div></div>
+        <div class="stat-card"><div class="value">150</div><div class="label">XP Earned</div></div>
+        <div class="stat-card"><div class="value">0</div><div class="label">Achievements</div></div>
+      </div>
+      <div class="placeholder-card">
+        <h2>Quest Log</h2>
+        <div class="skeleton w-90"></div>
+        <div class="skeleton w-75"></div>
+        <div class="skeleton w-50"></div>
+        <p style="margin-top:16px;font-size:0.85rem;color:var(--text-2)">Track completed, skipped, and undiscovered questions across all chapters. Jump back to any unanswered question with the Rewind mechanic.</p>
+      </div>`,
+    // Journal
+    () => `
+      <div class="placeholder-card">
+        <h2>Journal</h2>
+        <p>Record life events with rich detail — title, story, category, date, photos, and importance rating. Each entry feeds into your timeline and memoir.</p>
+        <div class="category-dots">
+          <span class="cat-dot"><span style="background:#3b82f6"></span>Career</span>
+          <span class="cat-dot"><span style="background:#f59e0b"></span>Family</span>
+          <span class="cat-dot"><span style="background:#10b981"></span>Home</span>
+          <span class="cat-dot"><span style="background:#a855f7"></span>Education</span>
+          <span class="cat-dot"><span style="background:#eab308"></span>Travel</span>
+          <span class="cat-dot"><span style="background:#06b6d4"></span>Health</span>
+          <span class="cat-dot"><span style="background:#f43f5e"></span>Milestone</span>
+          <span class="cat-dot"><span style="background:#ec4899"></span>Relationships</span>
+          <span class="cat-dot"><span style="background:#8b5cf6"></span>Thoughts</span>
+        </div>
+      </div>
+      <div class="placeholder-card"><h2>Recent Entries</h2><div class="skeleton h-32"></div></div>`,
+    // Thoughts
+    () => `
+      <div class="placeholder-card">
+        <h2>Thoughts</h2>
+        <p>Quick-capture musings, questions, and ideas. A masonry wall of everything on your mind — tagged as Thought, Pondering, Note, Question, or Idea.</p>
+        <div class="skeleton h-32"></div>
+      </div>`,
+    // Events
+    () => `
+      <div class="placeholder-card">
+        <h2>Custom Events</h2>
+        <p>Life entries outside the chapter structure. Freeform events with categories and dates that feed into your timeline.</p>
+        <div class="skeleton w-90"></div><div class="skeleton w-75"></div>
+      </div>`
+  ],
+  reflect: [
+    // Spiral
+    () => `
+      <div class="placeholder-card">
+        <h2>Spiral Timeline</h2>
+        <p>Birth at the centre, each year radiates outward as a ring. Events are colour-coded dots on the spiral. The hero visualisation of your entire life, animated on load.</p>
+        <div style="text-align:center;padding:30px 0">
+          <svg width="200" height="200" viewBox="0 0 200 200">
+            <path d="M100,100 m0,0 ${[...Array(8)].map((_,i) => {
+              const a = i*0.8; const r = i*12;
+              return `Q${100+r*Math.cos(a)},${100+r*Math.sin(a)} ${100+(r+6)*Math.cos(a+0.4)},${100+(r+6)*Math.sin(a+0.4)}`;
+            }).join(' ')}" fill="none" stroke="var(--accent)" stroke-width="2" opacity="0.5"/>
+            ${[...Array(6)].map((_,i) => {
+              const a = i*1.2; const r = 15+i*15;
+              return `<circle cx="${100+r*Math.cos(a)}" cy="${100+r*Math.sin(a)}" r="4" fill="${['#3b82f6','#f59e0b','#10b981','#a855f7','#f43f5e','#eab308'][i]}" opacity="0.8"/>`;
+            }).join('')}
+          </svg>
+        </div>
+        <p style="font-size:0.85rem;color:var(--text-2);text-align:center">Canvas animation with year scrubber &bull; "Full Life Explosion" zoom</p>
+      </div>`,
+    // Timeline
+    () => `<div class="placeholder-card"><h2>Timeline</h2><p>Vertical chronological view of every recorded event — Chronicle answers, journal entries, custom events. Scrollable, filterable, colour-coded by category.</p><div class="skeleton h-32"></div></div>`,
+    // Heatmap
+    () => `<div class="placeholder-card"><h2>Life Weeks</h2><p>A grid of every week you've lived, colour-coded by story density. Weeks with more recorded events glow warmer. The gaps show you where the untold stories are.</p><div class="skeleton h-32"></div></div>`,
+    // On This Day
+    () => `<div class="placeholder-card"><h2>On This Day</h2><p>What happened on 24 March in past years? Surfaces memories and entries from the same date in previous years.</p><div class="skeleton w-90"></div><div class="skeleton w-75"></div></div>`,
+    // Epochs
+    () => `<div class="placeholder-card"><h2>Epochs</h2><p>Auto-detected life chapters based on event clustering. The system identifies natural groupings — your school years, career shifts, family milestones — and labels them.</p><div class="skeleton h-32"></div></div>`,
+    // Reflections
+    () => `<div class="placeholder-card"><h2>Seasonal Reflections</h2><p>Prompted quarterly and annual reviews based on what you've recorded. A structured way to look back and notice patterns.</p><div class="skeleton w-90"></div><div class="skeleton w-50"></div></div>`
+  ],
+  wealth: [
+    // Dashboard
+    () => `
+      <div class="stats-row">
+        <div class="stat-card"><div class="value">$2.5M</div><div class="label">Assets</div></div>
+        <div class="stat-card"><div class="value">$869K</div><div class="label">Liabilities</div></div>
+        <div class="stat-card"><div class="value">$1.6M</div><div class="label">Net Worth</div></div>
+      </div>
+      <div class="placeholder-card">
+        <h2>Financial Dashboard</h2>
+        <p>Net worth, assets vs liabilities, property equity, salary trends — all in the Dark Gold theme with Chart.js visualisations.</p>
+        <div class="chart-mock">
+          ${[40,55,45,70,65,80,75,90,85,95,88,100].map((h,i) =>
+            `<div class="chart-bar" style="height:${h}%;animation-delay:${i*0.05}s"></div>`
+          ).join('')}
+        </div>
+        <p style="font-size:0.75rem;color:var(--text-2);text-align:center">Monthly net worth trend (sample)</p>
+      </div>`,
+    // Properties
+    () => `
+      <div class="placeholder-card">
+        <h2>Property Portfolio</h2>
+        <p>4 active properties tracked with purchase price, current value, loan balance, equity, rental income, and ownership splits.</p>
+        <div style="margin-top:12px">
+          ${[
+            {addr:'69 Blackwood Rd, Deagon', val:'$333,500', split:'50/50'},
+            {addr:'29 Wickham St, Brighton', val:'$515,000', split:'50/50'},
+            {addr:'11 Tobruk Cres, Orange', val:'$153,000', split:'100%'},
+            {addr:'16 Beddoe Rd, Lawnton', val:'$1,506,000', split:'50/50'}
+          ].map(p => `
+            <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+              <div style="font-weight:600;font-size:0.9rem">${p.addr}</div>
+              <div style="font-size:0.8rem;color:var(--text-2)">${p.val} &bull; ${p.split}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>`,
+    // Salary
+    () => `<div class="placeholder-card"><h2>Salary History</h2><p>Track gross salary by financial year. From $45K starting at Accurate Industries to $110K current (2026).</p><div class="chart-mock">${[40,50,60,65,70,75,80,85,90,95,100].map((h,i) => `<div class="chart-bar" style="height:${h}%;animation-delay:${i*0.05}s"></div>`).join('')}</div></div>`,
+    // Super
+    () => `<div class="placeholder-card"><h2>Superannuation</h2><p>Australian Retirement Trust, Lifecycle High Growth Pool. Balance approx $260,574. Death + TPD cover $186K each.</p><div class="skeleton w-90"></div></div>`,
+    // Spending
+    () => `<div class="placeholder-card"><h2>Spending Analysis</h2><p>Category breakdown from bank CSV imports. ~$43,000/year lifestyle spending. Import your CBA transaction CSVs to see where the money goes.</p><div class="skeleton h-32"></div></div>`
+  ],
+  me: [
+    // Profile
+    () => `<div class="placeholder-card"><h2>Profile</h2><p>Your name, bio, and life snapshot stats — total entries, years recorded, achievements unlocked.</p><div class="skeleton w-75"></div><div class="skeleton w-50"></div></div>`,
+    // Connections
+    () => `<div class="placeholder-card"><h2>Connections</h2><p>People mentioned across your entries — family, colleagues, friends. Eventually a force-directed relationship graph.</p><div class="skeleton h-32"></div></div>`,
+    // Letters
+    () => `<div class="placeholder-card"><h2>Letters to the Future</h2><p>Sealed time-capsule messages that unlock on a date you choose. Write to your future self — the envelope stays sealed until the day arrives.</p><div class="skeleton w-90"></div></div>`,
+    // Export
+    () => `<div class="placeholder-card"><h2>Export</h2><p>Generate a "Book of You" PDF memoir, standalone HTML timeline, or financial report. Games that create documents.</p><div class="skeleton w-75"></div><div class="skeleton w-50"></div></div>`,
+    // Settings
+    () => `
+      <div class="placeholder-card">
+        <h2>Settings</h2>
+        <p>Theme, sound, data management.</p>
+        <div style="margin-top:16px">
+          <div style="font-weight:600;font-size:0.85rem;margin-bottom:8px">Theme</div>
+          <div style="display:flex;gap:8px">
+            <button onclick="setTheme('hearthstone')" style="flex:1;padding:12px;border-radius:8px;border:2px solid ${userTheme==='hearthstone'?'var(--accent)':'var(--border)'};background:#1a1510;color:#e8dcc8;cursor:pointer;font-family:inherit;font-size:0.8rem;font-weight:600">Hearthstone</button>
+            <button onclick="setTheme('meadow')" style="flex:1;padding:12px;border-radius:8px;border:2px solid ${userTheme==='meadow'?'var(--accent)':'var(--border)'};background:#faf6ef;color:#3a3530;cursor:pointer;font-family:inherit;font-size:0.8rem;font-weight:600">Meadow</button>
+          </div>
+          <p style="font-size:0.75rem;color:var(--text-2);margin-top:8px">Wealth pillar always uses Dark Gold regardless of your choice.</p>
+        </div>
+      </div>`
+  ]
+};
+
+function renderContent() {
+  const fn = content[currentPillar]?.[currentTab];
+  document.getElementById('content').innerHTML = fn ? fn() : '<div class="placeholder-card"><h2>Coming Soon</h2></div>';
+
+  // Animate XP bar
+  setTimeout(() => {
+    const bar = document.querySelector('.xp-bar-inner');
+    if (bar) bar.style.width = '15%';
+  }, 100);
+}
+
+// Initial render
+renderSubNav();
+renderContent();
+</script>
+</body>
+</html>
