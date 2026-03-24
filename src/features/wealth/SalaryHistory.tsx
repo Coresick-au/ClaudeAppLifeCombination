@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -10,28 +10,10 @@ import {
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import { formatAUD } from '@/utils/currency';
+import { useData } from '@/services/DataContext';
 import type { SalaryRecord } from '@/types/wealth.types';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
-
-// --- localStorage helpers ---
-
-function loadSalary(): SalaryRecord[] {
-  try {
-    const raw = localStorage.getItem('life-os-salary');
-    return raw ? (JSON.parse(raw) as SalaryRecord[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveSalary(records: SalaryRecord[]): void {
-  localStorage.setItem('life-os-salary', JSON.stringify(records));
-}
-
-function generateId(): string {
-  return `sal-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
 
 // --- Skeleton ---
 
@@ -123,8 +105,8 @@ const SalaryRow = memo(function SalaryRow({
 // --- Main component ---
 
 export function SalaryHistory() {
-  const [loading, setLoading] = useState(true);
-  const [records, setRecords] = useState<SalaryRecord[]>([]);
+  const { getSalaryHistory, setSalaryHistory, isLoaded } = useData();
+  const records = getSalaryHistory();
   const [showForm, setShowForm] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -134,11 +116,6 @@ export function SalaryHistory() {
   const [formEmployer, setFormEmployer] = useState('');
   const [formNotes, setFormNotes] = useState('');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    setRecords(loadSalary());
-    setLoading(false);
-  }, []);
 
   const sortedRecords = useMemo(
     () => [...records].sort((a, b) => b.financialYear.localeCompare(a.financialYear)),
@@ -227,19 +204,18 @@ export function SalaryHistory() {
         return;
       }
       const newRecord: SalaryRecord = {
-        id: generateId(),
+        id: crypto.randomUUID(),
         financialYear: formYear.trim(),
         grossSalary: Number(formSalary),
         employer: formEmployer.trim(),
         notes: formNotes.trim(),
       };
       const updated = [...records, newRecord];
-      setRecords(updated);
-      saveSalary(updated);
+      setSalaryHistory(updated);
       resetForm();
       setShowForm(false);
     },
-    [formYear, formSalary, formEmployer, formNotes, records, resetForm],
+    [formYear, formSalary, formEmployer, formNotes, records, resetForm, setSalaryHistory],
   );
 
   const handleDeleteRequest = useCallback((id: string) => {
@@ -249,18 +225,17 @@ export function SalaryHistory() {
   const handleConfirmDelete = useCallback(
     (id: string) => {
       const updated = records.filter((r) => r.id !== id);
-      setRecords(updated);
-      saveSalary(updated);
+      setSalaryHistory(updated);
       setDeletingId(null);
     },
-    [records],
+    [records, setSalaryHistory],
   );
 
   const handleCancelDelete = useCallback(() => {
     setDeletingId(null);
   }, []);
 
-  if (loading) {
+  if (!isLoaded) {
     return (
       <div className="p-6">
         <SalarySkeleton />

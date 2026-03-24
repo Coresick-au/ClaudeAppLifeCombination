@@ -1,13 +1,6 @@
-import { useState, useCallback, useEffect, useMemo, memo } from 'react';
-
-interface Connection {
-  id: string;
-  name: string;
-  relationship: string;
-  notes: string;
-  metDate: string;
-  createdAt: string;
-}
+import { useState, useCallback, useMemo, memo } from 'react';
+import { useData } from '@/services/DataContext';
+import type { Connection } from '@/types/data.types';
 
 type RelationshipType = 'family' | 'friend' | 'colleague' | 'partner' | 'mentor' | 'other';
 
@@ -24,21 +17,6 @@ const RELATIONSHIP_COLOURS: Record<RelationshipType, string> = {
   other: '#6b7280',
 };
 
-const CONNECTIONS_KEY = 'life-os-connections';
-
-function loadConnections(): Connection[] {
-  try {
-    const raw = localStorage.getItem(CONNECTIONS_KEY);
-    return raw ? (JSON.parse(raw) as Connection[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveConnections(connections: Connection[]): void {
-  localStorage.setItem(CONNECTIONS_KEY, JSON.stringify(connections));
-}
-
 function formatDateAU(isoDate: string): string {
   if (!isoDate) return '';
   const d = new Date(isoDate);
@@ -47,10 +25,6 @@ function formatDateAU(isoDate: string): string {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
   return `${day}/${month}/${year}`;
-}
-
-function generateId(): string {
-  return `conn-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function ConnectionsSkeleton() {
@@ -156,18 +130,13 @@ const ConnectionCard = memo(function ConnectionCard({ connection, onDelete }: Co
 });
 
 export function Connections() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [connections, setConnections] = useState<Connection[]>([]);
+  const { isLoaded, getConnections, setConnections } = useData();
+  const connections = getConnections();
   const [showForm, setShowForm] = useState(false);
   const [formName, setFormName] = useState('');
   const [formRelationship, setFormRelationship] = useState<RelationshipType>('friend');
   const [formNotes, setFormNotes] = useState('');
   const [formMetDate, setFormMetDate] = useState('');
-
-  useEffect(() => {
-    setConnections(loadConnections());
-    setIsLoading(false);
-  }, []);
 
   const sortedConnections = useMemo(
     () => [...connections].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
@@ -186,7 +155,7 @@ export function Connections() {
     if (!formName.trim()) return;
 
     const newConnection: Connection = {
-      id: generateId(),
+      id: crypto.randomUUID(),
       name: formName.trim(),
       relationship: formRelationship,
       notes: formNotes.trim(),
@@ -196,19 +165,15 @@ export function Connections() {
 
     const updated = [newConnection, ...connections];
     setConnections(updated);
-    saveConnections(updated);
     resetForm();
-  }, [formName, formRelationship, formNotes, formMetDate, connections, resetForm]);
+  }, [formName, formRelationship, formNotes, formMetDate, connections, setConnections, resetForm]);
 
   const handleDelete = useCallback((id: string) => {
-    setConnections((prev) => {
-      const updated = prev.filter((c) => c.id !== id);
-      saveConnections(updated);
-      return updated;
-    });
-  }, []);
+    const updated = connections.filter((c) => c.id !== id);
+    setConnections(updated);
+  }, [connections, setConnections]);
 
-  if (isLoading) {
+  if (!isLoaded) {
     return (
       <div className="p-6">
         <h2 className="text-2xl font-display font-bold text-text-primary mb-6">Connections</h2>

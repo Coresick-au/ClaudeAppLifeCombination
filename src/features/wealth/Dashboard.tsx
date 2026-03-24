@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -13,51 +13,10 @@ import {
 } from 'chart.js';
 import { Line, Doughnut } from 'react-chartjs-2';
 import { formatAUD } from '@/utils/currency';
-import type { Property, SalaryRecord, SuperFund, FinancialSnapshot } from '@/types/wealth.types';
+import { useData } from '@/services/DataContext';
+import type { FinancialSnapshot } from '@/types/wealth.types';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Title, Tooltip, Legend, Filler);
-
-// --- localStorage helpers ---
-
-function loadProperties(): Property[] {
-  try {
-    const raw = localStorage.getItem('life-os-properties');
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function loadSalary(): SalaryRecord[] {
-  try {
-    const raw = localStorage.getItem('life-os-salary');
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function loadSuper(): SuperFund[] {
-  try {
-    const raw = localStorage.getItem('life-os-super');
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function loadSnapshots(): FinancialSnapshot[] {
-  try {
-    const raw = localStorage.getItem('life-os-snapshots');
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveSnapshots(snapshots: FinancialSnapshot[]): void {
-  localStorage.setItem('life-os-snapshots', JSON.stringify(snapshots));
-}
 
 function formatDateAU(isoDate: string): string {
   const d = new Date(isoDate);
@@ -102,35 +61,12 @@ const EQUITY_COLOURS = [
 // --- Main component ---
 
 export function Dashboard() {
-  const [loading, setLoading] = useState(true);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [salaryRecords, setSalaryRecords] = useState<SalaryRecord[]>([]);
-  const [superFunds, setSuperFunds] = useState<SuperFund[]>([]);
-  const [snapshots, setSnapshots] = useState<FinancialSnapshot[]>([]);
+  const { getProperties, getSalaryHistory, getSuperFunds, getSnapshots, setSnapshots, isLoaded } = useData();
 
-  useEffect(() => {
-    setProperties(loadProperties());
-    setSalaryRecords(loadSalary());
-    setSuperFunds(loadSuper());
-    setSnapshots(loadSnapshots());
-    setLoading(false);
-  }, []);
-
-  // Refresh data on storage events (cross-tab) and on focus (same-tab navigation)
-  useEffect(() => {
-    const refresh = () => {
-      setProperties(loadProperties());
-      setSalaryRecords(loadSalary());
-      setSuperFunds(loadSuper());
-      setSnapshots(loadSnapshots());
-    };
-    window.addEventListener('storage', refresh);
-    window.addEventListener('focus', refresh);
-    return () => {
-      window.removeEventListener('storage', refresh);
-      window.removeEventListener('focus', refresh);
-    };
-  }, []);
+  const properties = getProperties();
+  const salaryRecords = getSalaryHistory();
+  const superFunds = getSuperFunds();
+  const snapshots = getSnapshots();
 
   const totalSuperBalance = useMemo(
     () => superFunds.reduce((sum, f) => sum + f.balance, 0),
@@ -273,10 +209,9 @@ export function Dashboard() {
     };
     const updated = [...snapshots, snapshot];
     setSnapshots(updated);
-    saveSnapshots(updated);
-  }, [totalAssets, totalLiabilities, netWorth, totalSuperBalance, latestSalary, properties, snapshots]);
+  }, [totalAssets, totalLiabilities, netWorth, totalSuperBalance, latestSalary, properties, snapshots, setSnapshots]);
 
-  if (loading) {
+  if (!isLoaded) {
     return (
       <div className="p-6">
         <DashboardSkeleton />

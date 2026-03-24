@@ -50,6 +50,7 @@ export function createEmptyDataset(): LifeOSData {
       snapshots: [],
     },
 
+    reflections: [],
     connections: [],
     letters: [],
   };

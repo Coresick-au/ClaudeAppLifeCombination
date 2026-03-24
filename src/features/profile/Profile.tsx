@@ -1,22 +1,6 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { useData } from '@/services/DataContext';
 import type { UserProfile } from '@/types/shared.types';
-
-const PROFILE_KEY = 'life-os-profile';
-const PHOTO_KEY = 'life-os-profile-photo';
-
-function loadProfile(): UserProfile | null {
-  try {
-    const raw = localStorage.getItem(PROFILE_KEY);
-    return raw ? (JSON.parse(raw) as UserProfile) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveProfile(profile: UserProfile): void {
-  localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-}
 
 function formatDateAU(isoDate: string): string {
   const d = new Date(isoDate);
@@ -63,35 +47,11 @@ function ProfileSkeleton() {
 }
 
 export function Profile() {
-  const { data } = useData();
-  const [isLoading, setIsLoading] = useState(true);
-  const [profile, setProfileState] = useState<UserProfile | null>(null);
+  const { data, isLoaded, getProfile, setProfile } = useData();
+  const profile = getProfile();
   const [editingField, setEditingField] = useState<'displayName' | 'email' | null>(null);
   const [editValue, setEditValue] = useState('');
-  const [photoURL, setPhotoURL] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const stored = loadProfile();
-    const photo = localStorage.getItem(PHOTO_KEY);
-    if (stored) {
-      setProfileState(stored);
-    } else {
-      const initial: UserProfile = {
-        displayName: data.profile.displayName || '',
-        email: data.profile.email || '',
-        theme: data.profile.theme || 'hearthstone',
-        soundEnabled: data.profile.soundEnabled ?? true,
-        createdAt: data.profile.createdAt || new Date().toISOString(),
-      };
-      setProfileState(initial);
-      saveProfile(initial);
-    }
-    if (photo) {
-      setPhotoURL(photo);
-    }
-    setIsLoading(false);
-  }, [data.profile]);
 
   const stats = useMemo(() => {
     const chronicleAnswers = Object.keys(data.chronicle.answers).length;
@@ -109,12 +69,11 @@ export function Profile() {
 
   const handleSaveEdit = useCallback(() => {
     if (!profile || !editingField) return;
-    const updated = { ...profile, [editingField]: editValue };
-    setProfileState(updated);
-    saveProfile(updated);
+    const updated: UserProfile = { ...profile, [editingField]: editValue };
+    setProfile(updated);
     setEditingField(null);
     setEditValue('');
-  }, [profile, editingField, editValue]);
+  }, [profile, editingField, editValue, setProfile]);
 
   const handleCancelEdit = useCallback(() => {
     setEditingField(null);
@@ -125,23 +84,22 @@ export function Profile() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) return;
-    // Limit to 2MB for localStorage
+    // Limit to 2MB
     if (file.size > 2 * 1024 * 1024) return;
 
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string;
-      localStorage.setItem(PHOTO_KEY, dataUrl);
-      setPhotoURL(dataUrl);
+      setProfile({ ...profile, photoURL: dataUrl });
     };
     reader.readAsDataURL(file);
-  }, []);
+  }, [profile, setProfile]);
 
   const handlePhotoClick = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
 
-  if (isLoading || !profile) {
+  if (!isLoaded) {
     return (
       <div className="p-6">
         <h2 className="text-2xl font-display font-bold text-text-primary mb-6">Profile</h2>
@@ -162,8 +120,8 @@ export function Profile() {
           className="relative h-24 w-24 rounded-full overflow-hidden border-2 border-[var(--color-border)] hover:border-[var(--color-accent)] transition-colors cursor-pointer flex-shrink-0 bg-[var(--color-surface-alt)]"
           aria-label="Upload profile photo"
         >
-          {photoURL ? (
-            <img src={photoURL} alt="Profile" className="h-full w-full object-cover" />
+          {profile.photoURL ? (
+            <img src={profile.photoURL} alt="Profile" className="h-full w-full object-cover" />
           ) : (
             <span className="flex h-full w-full items-center justify-center text-3xl text-text-secondary">
               {profile.displayName ? profile.displayName.charAt(0).toUpperCase() : '?'}

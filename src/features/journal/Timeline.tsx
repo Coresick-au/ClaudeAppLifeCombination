@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import type { EventCategory } from '../../types/shared.types';
 import { EVENT_CATEGORY_COLOURS } from '../../types/shared.types';
-import type { ChronicleAnswer } from '../../types/chronicle.types';
+import { useData } from '@/services/DataContext';
 
 // --- Unified event type ---
 interface TimelineEvent {
@@ -28,92 +28,6 @@ function formatDateAU(isoDate: string): string {
 
 function getYearFromISO(iso: string): number {
   return new Date(iso).getFullYear();
-}
-
-// --- Data loading helpers ---
-function loadAllEvents(): TimelineEvent[] {
-  const events: TimelineEvent[] = [];
-
-  try {
-    const journalRaw = localStorage.getItem('life-os-journal');
-    if (journalRaw) {
-      const entries = JSON.parse(journalRaw) as Array<{
-        id: string; title: string; content: string;
-        category: EventCategory; date: string;
-      }>;
-      for (const e of entries) {
-        events.push({
-          id: `journal-${e.id}`,
-          title: e.title,
-          content: e.content.length > 160 ? e.content.slice(0, 160) + '\u2026' : e.content,
-          date: e.date,
-          category: e.category,
-          source: 'journal',
-        });
-      }
-    }
-  } catch { /* ignore corrupt data */ }
-
-  try {
-    const thoughtsRaw = localStorage.getItem('life-os-thoughts');
-    if (thoughtsRaw) {
-      const thoughts = JSON.parse(thoughtsRaw) as Array<{
-        id: string; type: string; content: string; createdAt: string;
-      }>;
-      for (const t of thoughts) {
-        events.push({
-          id: `thought-${t.id}`,
-          title: `${t.type.charAt(0).toUpperCase()}${t.type.slice(1)}`,
-          content: t.content.length > 160 ? t.content.slice(0, 160) + '\u2026' : t.content,
-          date: t.createdAt,
-          category: 'thoughts',
-          source: 'thought',
-        });
-      }
-    }
-  } catch { /* ignore corrupt data */ }
-
-  try {
-    const customRaw = localStorage.getItem('life-os-custom-events');
-    if (customRaw) {
-      const customs = JSON.parse(customRaw) as Array<{
-        id: string; title: string; description: string;
-        category: EventCategory; date: string;
-      }>;
-      for (const c of customs) {
-        events.push({
-          id: `custom-${c.id}`,
-          title: c.title,
-          content: c.description.length > 160 ? c.description.slice(0, 160) + '\u2026' : c.description,
-          date: c.date,
-          category: c.category,
-          source: 'custom-event',
-        });
-      }
-    }
-  } catch { /* ignore corrupt data */ }
-
-  try {
-    const chronicleRaw = localStorage.getItem('life-os-chronicle');
-    if (chronicleRaw) {
-      const chronicle = JSON.parse(chronicleRaw) as { answers: Record<string, ChronicleAnswer> };
-      if (chronicle.answers) {
-        for (const [key, answer] of Object.entries(chronicle.answers)) {
-          if (!answer.value) continue;
-          events.push({
-            id: `chronicle-${key}`,
-            title: `Chronicle: ${answer.questionId.replace(/-/g, ' ')}`,
-            content: answer.value.length > 160 ? answer.value.slice(0, 160) + '\u2026' : answer.value,
-            date: answer.answeredAt,
-            category: 'milestone',
-            source: 'chronicle',
-          });
-        }
-      }
-    }
-  } catch { /* ignore corrupt data */ }
-
-  return events;
 }
 
 const SOURCE_LABELS: Record<TimelineEvent['source'], string> = {
@@ -209,17 +123,68 @@ const TimelineCard = memo(function TimelineCard({ event, side }: TimelineCardPro
 
 // --- Main Component ---
 export function Timeline() {
-  const [allEvents, setAllEvents] = useState<TimelineEvent[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { getJournalEntries, getThoughts, getCustomEvents, getChronicle, isLoaded } = useData();
   const [categoryFilter, setCategoryFilter] = useState<EventCategory | 'all'>('all');
   const [yearFilter, setYearFilter] = useState<number | 'all'>('all');
 
-  useEffect(() => {
-    const events = loadAllEvents();
-    setAllEvents(events);
-    const timer = setTimeout(() => setIsLoading(false), 300);
-    return () => clearTimeout(timer);
-  }, []);
+  const allEvents = useMemo<TimelineEvent[]>(() => {
+    if (!isLoaded) return [];
+
+    const events: TimelineEvent[] = [];
+
+    const journalEntries = getJournalEntries();
+    for (const e of journalEntries) {
+      events.push({
+        id: `journal-${e.id}`,
+        title: e.title,
+        content: e.content.length > 160 ? e.content.slice(0, 160) + '\u2026' : e.content,
+        date: e.date,
+        category: e.category,
+        source: 'journal',
+      });
+    }
+
+    const thoughts = getThoughts();
+    for (const t of thoughts) {
+      events.push({
+        id: `thought-${t.id}`,
+        title: `${t.type.charAt(0).toUpperCase()}${t.type.slice(1)}`,
+        content: t.content.length > 160 ? t.content.slice(0, 160) + '\u2026' : t.content,
+        date: t.createdAt,
+        category: 'thoughts',
+        source: 'thought',
+      });
+    }
+
+    const customEvents = getCustomEvents();
+    for (const c of customEvents) {
+      events.push({
+        id: `custom-${c.id}`,
+        title: c.title,
+        content: c.description.length > 160 ? c.description.slice(0, 160) + '\u2026' : c.description,
+        date: c.date,
+        category: c.category,
+        source: 'custom-event',
+      });
+    }
+
+    const chronicle = getChronicle();
+    if (chronicle.answers) {
+      for (const [key, answer] of Object.entries(chronicle.answers)) {
+        if (!answer.value) continue;
+        events.push({
+          id: `chronicle-${key}`,
+          title: `Chronicle: ${answer.questionId.replace(/-/g, ' ')}`,
+          content: answer.value.length > 160 ? answer.value.slice(0, 160) + '\u2026' : answer.value,
+          date: answer.answeredAt,
+          category: 'milestone',
+          source: 'chronicle',
+        });
+      }
+    }
+
+    return events;
+  }, [isLoaded, getJournalEntries, getThoughts, getCustomEvents, getChronicle]);
 
   const availableYears = useMemo(() => {
     const years = new Set<number>();
@@ -252,7 +217,7 @@ export function Timeline() {
   const selectClasses =
     'rounded-lg px-3 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] text-text-primary font-body text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/50';
 
-  if (isLoading) {
+  if (!isLoaded) {
     return (
       <div className="p-6">
         <div className="skeleton h-8 w-40 mb-6" />

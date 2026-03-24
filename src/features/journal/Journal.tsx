@@ -1,17 +1,8 @@
-import { useState, useCallback, useEffect, useMemo, memo } from 'react';
+import { useState, useCallback, useMemo, memo } from 'react';
 import type { EventCategory } from '../../types/shared.types';
 import { EVENT_CATEGORY_COLOURS } from '../../types/shared.types';
-
-interface JournalEntryLocal {
-  id: string;
-  title: string;
-  content: string;
-  category: EventCategory;
-  date: string; // ISO string for localStorage
-  tags: string[];
-  importance: 1 | 2 | 3 | 4 | 5;
-  createdAt: string;
-}
+import { useData } from '@/services/DataContext';
+import type { JournalEntry } from '@/types/journal.types';
 
 const CATEGORIES: EventCategory[] = [
   'career', 'family', 'home', 'education', 'travel',
@@ -24,19 +15,6 @@ function formatDateAU(isoDate: string): string {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
   return `${day}/${month}/${year}`;
-}
-
-function loadEntries(): JournalEntryLocal[] {
-  try {
-    const raw = localStorage.getItem('life-os-journal');
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveEntries(entries: JournalEntryLocal[]): void {
-  localStorage.setItem('life-os-journal', JSON.stringify(entries));
 }
 
 function todayISO(): string {
@@ -61,7 +39,7 @@ function JournalSkeleton() {
 
 // --- Entry Card ---
 interface EntryCardProps {
-  entry: JournalEntryLocal;
+  entry: JournalEntry;
   onDelete: (id: string) => void;
 }
 
@@ -164,7 +142,7 @@ const EntryCard = memo(function EntryCard({ entry, onDelete }: EntryCardProps) {
 
 // --- Add Entry Form ---
 interface AddFormProps {
-  onSave: (entry: Omit<JournalEntryLocal, 'id' | 'createdAt'>) => void;
+  onSave: (entry: Omit<JournalEntry, 'id' | 'createdAt' | 'year' | 'month' | 'photoUrls'>) => void;
   onCancel: () => void;
 }
 
@@ -297,15 +275,11 @@ function AddEntryForm({ onSave, onCancel }: AddFormProps) {
 
 // --- Main Journal Component ---
 export function Journal() {
-  const [entries, setEntries] = useState<JournalEntryLocal[]>(() => loadEntries());
+  const { getJournalEntries, setJournalEntries, isLoaded } = useData();
+  const entries = getJournalEntries();
   const [showForm, setShowForm] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Simulate initial load
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 300);
-    return () => clearTimeout(timer);
-  }, []);
+  const isLoading = !isLoaded;
 
   const sortedEntries = useMemo(
     () => [...entries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
@@ -313,27 +287,28 @@ export function Journal() {
   );
 
   const handleSave = useCallback(
-    (data: Omit<JournalEntryLocal, 'id' | 'createdAt'>) => {
-      const newEntry: JournalEntryLocal = {
+    (data: Omit<JournalEntry, 'id' | 'createdAt' | 'year' | 'month' | 'photoUrls'>) => {
+      const newEntry: JournalEntry = {
         ...data,
         id: crypto.randomUUID(),
         createdAt: new Date().toISOString(),
+        year: new Date(data.date).getFullYear(),
+        month: new Date(data.date).getMonth() + 1,
+        photoUrls: [],
       };
       const updated = [...entries, newEntry];
-      setEntries(updated);
-      saveEntries(updated);
+      setJournalEntries(updated);
       setShowForm(false);
     },
-    [entries]
+    [entries, setJournalEntries]
   );
 
   const handleDelete = useCallback(
     (id: string) => {
       const updated = entries.filter((e) => e.id !== id);
-      setEntries(updated);
-      saveEntries(updated);
+      setJournalEntries(updated);
     },
-    [entries]
+    [entries, setJournalEntries]
   );
 
   const handleOpenForm = useCallback(() => setShowForm(true), []);

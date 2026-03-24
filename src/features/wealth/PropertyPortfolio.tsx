@@ -1,26 +1,8 @@
-import { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import { formatAUD } from '@/utils/currency';
 import { isoToAU } from '@/utils/dates';
+import { useData } from '@/services/DataContext';
 import type { Property } from '@/types/wealth.types';
-
-// --- localStorage helpers ---
-
-function loadProperties(): Property[] {
-  try {
-    const raw = localStorage.getItem('life-os-properties');
-    return raw ? (JSON.parse(raw) as Property[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveProperties(properties: Property[]): void {
-  localStorage.setItem('life-os-properties', JSON.stringify(properties));
-}
-
-function generateId(): string {
-  return `prop-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
 
 // --- Constants ---
 
@@ -477,17 +459,12 @@ const PropertyCard = memo(function PropertyCard({
 // --- Main component ---
 
 export function PropertyPortfolio() {
-  const [loading, setLoading] = useState(true);
-  const [properties, setProperties] = useState<Property[]>([]);
+  const { getProperties, setProperties, isLoaded } = useData();
+  const properties = getProperties();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortField>('equity');
-
-  useEffect(() => {
-    setProperties(loadProperties());
-    setLoading(false);
-  }, []);
 
   const sortedProperties = useMemo(() => {
     const sorted = [...properties];
@@ -500,12 +477,11 @@ export function PropertyPortfolio() {
   }, [properties, sortBy]);
 
   const handleAdd = useCallback((data: Omit<Property, 'id'>) => {
-    const newProperty: Property = { ...data, id: generateId() };
+    const newProperty: Property = { ...data, id: crypto.randomUUID() };
     const updated = [...properties, newProperty];
     setProperties(updated);
-    saveProperties(updated);
     setShowAddForm(false);
-  }, [properties]);
+  }, [properties, setProperties]);
 
   const handleEdit = useCallback((id: string) => {
     setEditingId(id);
@@ -516,9 +492,8 @@ export function PropertyPortfolio() {
     if (!editingId) return;
     const updated = properties.map((p) => (p.id === editingId ? { ...data, id: editingId } : p));
     setProperties(updated);
-    saveProperties(updated);
     setEditingId(null);
-  }, [editingId, properties]);
+  }, [editingId, properties, setProperties]);
 
   const handleCancelEdit = useCallback(() => {
     setEditingId(null);
@@ -531,9 +506,8 @@ export function PropertyPortfolio() {
   const handleConfirmDelete = useCallback((id: string) => {
     const updated = properties.filter((p) => p.id !== id);
     setProperties(updated);
-    saveProperties(updated);
     setDeletingId(null);
-  }, [properties]);
+  }, [properties, setProperties]);
 
   const handleCancelDelete = useCallback(() => {
     setDeletingId(null);
@@ -543,7 +517,7 @@ export function PropertyPortfolio() {
     setSortBy(field);
   }, []);
 
-  if (loading) {
+  if (!isLoaded) {
     return (
       <div className="p-6">
         <PortfolioSkeleton />

@@ -1,26 +1,8 @@
-import { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import { formatAUD } from '@/utils/currency';
 import { isoToAU } from '@/utils/dates';
+import { useData } from '@/services/DataContext';
 import type { SuperFund } from '@/types/wealth.types';
-
-// --- localStorage helpers ---
-
-function loadSuper(): SuperFund[] {
-  try {
-    const raw = localStorage.getItem('life-os-super');
-    return raw ? (JSON.parse(raw) as SuperFund[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveSuper(funds: SuperFund[]): void {
-  localStorage.setItem('life-os-super', JSON.stringify(funds));
-}
-
-function generateId(): string {
-  return `super-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
 
 // --- Skeleton ---
 
@@ -228,8 +210,8 @@ const FundCard = memo(function FundCard({
 // --- Main component ---
 
 export function SuperTracker() {
-  const [loading, setLoading] = useState(true);
-  const [funds, setFunds] = useState<SuperFund[]>([]);
+  const { getSuperFunds, setSuperFunds, isLoaded } = useData();
+  const funds = getSuperFunds();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -237,11 +219,6 @@ export function SuperTracker() {
   // Add form state
   const [form, setForm] = useState<SuperFormData>(EMPTY_FORM);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    setFunds(loadSuper());
-    setLoading(false);
-  }, []);
 
   const totalBalance = useMemo(
     () => funds.reduce((sum, f) => sum + f.balance, 0),
@@ -264,19 +241,18 @@ export function SuperTracker() {
         return;
       }
       const newFund: SuperFund = {
-        id: generateId(),
+        id: crypto.randomUUID(),
         fundName: form.fundName.trim(),
         balance: Number(form.balance),
         insuranceCover: form.insuranceCover.trim(),
         lastUpdated: form.lastUpdated || new Date().toISOString().split('T')[0] || '',
       };
       const updated = [...funds, newFund];
-      setFunds(updated);
-      saveSuper(updated);
+      setSuperFunds(updated);
       resetForm();
       setShowForm(false);
     },
-    [form, funds, resetForm],
+    [form, funds, resetForm, setSuperFunds],
   );
 
   const handleEdit = useCallback((id: string) => {
@@ -297,11 +273,10 @@ export function SuperTracker() {
             }
           : f,
       );
-      setFunds(updated);
-      saveSuper(updated);
+      setSuperFunds(updated);
       setEditingId(null);
     },
-    [funds],
+    [funds, setSuperFunds],
   );
 
   const handleCancelEdit = useCallback(() => {
@@ -315,18 +290,17 @@ export function SuperTracker() {
   const handleConfirmDelete = useCallback(
     (id: string) => {
       const updated = funds.filter((f) => f.id !== id);
-      setFunds(updated);
-      saveSuper(updated);
+      setSuperFunds(updated);
       setDeletingId(null);
     },
-    [funds],
+    [funds, setSuperFunds],
   );
 
   const handleCancelDelete = useCallback(() => {
     setDeletingId(null);
   }, []);
 
-  if (loading) {
+  if (!isLoaded) {
     return (
       <div className="p-6">
         <SuperSkeleton />

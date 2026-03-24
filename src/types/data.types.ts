@@ -1,5 +1,5 @@
 import type { ChronicleState } from './chronicle.types';
-import type { JournalEntry, Thought, LetterToFuture } from './journal.types';
+import type { JournalEntry, Thought, LetterToFuture, Reflection } from './journal.types';
 import type { Property, SalaryRecord, SuperFund, FinancialSnapshot } from './wealth.types';
 import type { UserProfile } from './shared.types';
 import type { EventCategory } from './shared.types';
@@ -10,6 +10,15 @@ export interface CustomEventData {
   description: string;
   category: EventCategory;
   date: string;
+  createdAt: string;
+}
+
+export interface Connection {
+  id: string;
+  name: string;
+  relationship: string;
+  notes: string;
+  metDate: string;
   createdAt: string;
 }
 
@@ -42,6 +51,7 @@ export interface LifeOSData {
     snapshots: FinancialSnapshot[];
   };
 
-  connections: Record<string, unknown>[];
+  reflections: Reflection[];
+  connections: Connection[];
   letters: LetterToFuture[];
 }

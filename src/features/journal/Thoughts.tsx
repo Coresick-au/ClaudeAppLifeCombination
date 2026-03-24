@@ -1,12 +1,6 @@
-import { useState, useCallback, useEffect, useMemo, memo } from 'react';
-import type { ThoughtType } from '../../types/journal.types';
-
-interface ThoughtLocal {
-  id: string;
-  type: ThoughtType;
-  content: string;
-  createdAt: string; // ISO string for localStorage
-}
+import { useState, useCallback, useMemo, memo } from 'react';
+import type { ThoughtType, Thought } from '../../types/journal.types';
+import { useData } from '@/services/DataContext';
 
 const THOUGHT_TYPES: { value: ThoughtType; label: string; colour: string }[] = [
   { value: 'thought', label: 'Thought', colour: '#8b5cf6' },
@@ -41,19 +35,6 @@ function relativeTimestamp(isoDate: string): string {
   return `${diffYears} year${diffYears === 1 ? '' : 's'} ago`;
 }
 
-function loadThoughts(): ThoughtLocal[] {
-  try {
-    const raw = localStorage.getItem('life-os-thoughts');
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveThoughts(thoughts: ThoughtLocal[]): void {
-  localStorage.setItem('life-os-thoughts', JSON.stringify(thoughts));
-}
-
 // --- Skeleton ---
 function ThoughtsSkeleton() {
   return (
@@ -75,7 +56,7 @@ function ThoughtsSkeleton() {
 
 // --- Thought Card ---
 interface ThoughtCardProps {
-  thought: ThoughtLocal;
+  thought: Thought;
   onDelete: (id: string) => void;
 }
 
@@ -138,16 +119,12 @@ const ThoughtCard = memo(function ThoughtCard({ thought, onDelete }: ThoughtCard
 
 // --- Main Thoughts Component ---
 export function Thoughts() {
-  const [thoughts, setThoughts] = useState<ThoughtLocal[]>(() => loadThoughts());
+  const { getThoughts, setThoughts: setThoughtsData, isLoaded } = useData();
+  const thoughts = getThoughts();
   const [inputValue, setInputValue] = useState('');
   const [selectedType, setSelectedType] = useState<ThoughtType>('thought');
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Simulate initial load
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 300);
-    return () => clearTimeout(timer);
-  }, []);
+  const isLoading = !isLoaded;
 
   const sortedThoughts = useMemo(
     () => [...thoughts].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
@@ -159,27 +136,25 @@ export function Thoughts() {
       e.preventDefault();
       if (!inputValue.trim()) return;
 
-      const newThought: ThoughtLocal = {
+      const newThought: Thought = {
         id: crypto.randomUUID(),
         type: selectedType,
         content: inputValue.trim(),
         createdAt: new Date().toISOString(),
       };
       const updated = [...thoughts, newThought];
-      setThoughts(updated);
-      saveThoughts(updated);
+      setThoughtsData(updated);
       setInputValue('');
     },
-    [inputValue, selectedType, thoughts]
+    [inputValue, selectedType, thoughts, setThoughtsData]
   );
 
   const handleDelete = useCallback(
     (id: string) => {
       const updated = thoughts.filter((t) => t.id !== id);
-      setThoughts(updated);
-      saveThoughts(updated);
+      setThoughtsData(updated);
     },
-    [thoughts]
+    [thoughts, setThoughtsData]
   );
 
   if (isLoading) {

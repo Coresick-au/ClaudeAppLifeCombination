@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, memo } from 'react';
+import { useMemo, memo } from 'react';
 import type { EventCategory } from '../../types/shared.types';
 import { EVENT_CATEGORY_COLOURS } from '../../types/shared.types';
-import type { ChronicleAnswer } from '../../types/chronicle.types';
+import { useData } from '@/services/DataContext';
 
 // --- Types ---
 interface OnThisDayEvent {
@@ -25,106 +25,6 @@ function formatDateAU(isoDate: string): string {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
   return `${day}/${month}/${year}`;
-}
-
-// --- Data loading ---
-function loadOnThisDayEvents(todayMonth: number, todayDay: number): OnThisDayEvent[] {
-  const events: OnThisDayEvent[] = [];
-  const currentYear = new Date().getFullYear();
-
-  function matchesDate(isoDate: string): boolean {
-    const d = new Date(isoDate);
-    return d.getMonth() === todayMonth && d.getDate() === todayDay && d.getFullYear() !== currentYear;
-  }
-
-  try {
-    const journalRaw = localStorage.getItem('life-os-journal');
-    if (journalRaw) {
-      const entries = JSON.parse(journalRaw) as Array<{
-        id: string; title: string; content: string;
-        category: EventCategory; date: string;
-      }>;
-      for (const e of entries) {
-        if (matchesDate(e.date)) {
-          events.push({
-            id: `journal-${e.id}`,
-            title: e.title,
-            content: e.content.length > 200 ? e.content.slice(0, 200) + '\u2026' : e.content,
-            date: e.date,
-            category: e.category,
-            source: 'Journal',
-          });
-        }
-      }
-    }
-  } catch { /* ignore */ }
-
-  try {
-    const thoughtsRaw = localStorage.getItem('life-os-thoughts');
-    if (thoughtsRaw) {
-      const thoughts = JSON.parse(thoughtsRaw) as Array<{
-        id: string; type: string; content: string; createdAt: string;
-      }>;
-      for (const t of thoughts) {
-        if (matchesDate(t.createdAt)) {
-          events.push({
-            id: `thought-${t.id}`,
-            title: `${t.type.charAt(0).toUpperCase()}${t.type.slice(1)}`,
-            content: t.content.length > 200 ? t.content.slice(0, 200) + '\u2026' : t.content,
-            date: t.createdAt,
-            category: 'thoughts',
-            source: 'Thought',
-          });
-        }
-      }
-    }
-  } catch { /* ignore */ }
-
-  try {
-    const customRaw = localStorage.getItem('life-os-custom-events');
-    if (customRaw) {
-      const customs = JSON.parse(customRaw) as Array<{
-        id: string; title: string; description: string;
-        category: EventCategory; date: string;
-      }>;
-      for (const c of customs) {
-        if (matchesDate(c.date)) {
-          events.push({
-            id: `custom-${c.id}`,
-            title: c.title,
-            content: c.description.length > 200 ? c.description.slice(0, 200) + '\u2026' : c.description,
-            date: c.date,
-            category: c.category,
-            source: 'Event',
-          });
-        }
-      }
-    }
-  } catch { /* ignore */ }
-
-  try {
-    const chronicleRaw = localStorage.getItem('life-os-chronicle');
-    if (chronicleRaw) {
-      const chronicle = JSON.parse(chronicleRaw) as { answers: Record<string, ChronicleAnswer> };
-      if (chronicle.answers) {
-        for (const [key, answer] of Object.entries(chronicle.answers)) {
-          if (!answer.value) continue;
-          if (matchesDate(answer.answeredAt)) {
-            events.push({
-              id: `chronicle-${key}`,
-              title: `Chronicle: ${answer.questionId.replace(/-/g, ' ')}`,
-              content: answer.value.length > 200 ? answer.value.slice(0, 200) + '\u2026' : answer.value,
-              date: answer.answeredAt,
-              category: 'milestone',
-              source: 'Chronicle',
-            });
-          }
-        }
-      }
-    }
-  } catch { /* ignore */ }
-
-  return events;
 }
 
 // --- Skeleton ---
@@ -182,8 +82,7 @@ const EventCard = memo(function EventCard({ event }: EventCardProps) {
 
 // --- Main Component ---
 export function OnThisDay() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [events, setEvents] = useState<OnThisDayEvent[]>([]);
+  const { getJournalEntries, getThoughts, getCustomEvents, getChronicle, isLoaded } = useData();
 
   const today = useMemo(() => new Date(), []);
   const todayMonth = today.getMonth();
@@ -194,12 +93,77 @@ export function OnThisDay() {
     return today.toLocaleDateString('en-AU', { day: 'numeric', month: 'long' });
   }, [today]);
 
-  useEffect(() => {
-    const loaded = loadOnThisDayEvents(todayMonth, todayDay);
-    setEvents(loaded);
-    const timer = setTimeout(() => setIsLoading(false), 300);
-    return () => clearTimeout(timer);
-  }, [todayMonth, todayDay]);
+  const events = useMemo<OnThisDayEvent[]>(() => {
+    if (!isLoaded) return [];
+
+    function matchesDate(isoDate: string): boolean {
+      const d = new Date(isoDate);
+      return d.getMonth() === todayMonth && d.getDate() === todayDay && d.getFullYear() !== currentYear;
+    }
+
+    const result: OnThisDayEvent[] = [];
+
+    const journalEntries = getJournalEntries();
+    for (const e of journalEntries) {
+      if (matchesDate(e.date)) {
+        result.push({
+          id: `journal-${e.id}`,
+          title: e.title,
+          content: e.content.length > 200 ? e.content.slice(0, 200) + '\u2026' : e.content,
+          date: e.date,
+          category: e.category,
+          source: 'Journal',
+        });
+      }
+    }
+
+    const thoughts = getThoughts();
+    for (const t of thoughts) {
+      if (matchesDate(t.createdAt)) {
+        result.push({
+          id: `thought-${t.id}`,
+          title: `${t.type.charAt(0).toUpperCase()}${t.type.slice(1)}`,
+          content: t.content.length > 200 ? t.content.slice(0, 200) + '\u2026' : t.content,
+          date: t.createdAt,
+          category: 'thoughts',
+          source: 'Thought',
+        });
+      }
+    }
+
+    const customEvents = getCustomEvents();
+    for (const c of customEvents) {
+      if (matchesDate(c.date)) {
+        result.push({
+          id: `custom-${c.id}`,
+          title: c.title,
+          content: c.description.length > 200 ? c.description.slice(0, 200) + '\u2026' : c.description,
+          date: c.date,
+          category: c.category,
+          source: 'Event',
+        });
+      }
+    }
+
+    const chronicle = getChronicle();
+    if (chronicle.answers) {
+      for (const [key, answer] of Object.entries(chronicle.answers)) {
+        if (!answer.value) continue;
+        if (matchesDate(answer.answeredAt)) {
+          result.push({
+            id: `chronicle-${key}`,
+            title: `Chronicle: ${answer.questionId.replace(/-/g, ' ')}`,
+            content: answer.value.length > 200 ? answer.value.slice(0, 200) + '\u2026' : answer.value,
+            date: answer.answeredAt,
+            category: 'milestone',
+            source: 'Chronicle',
+          });
+        }
+      }
+    }
+
+    return result;
+  }, [isLoaded, getJournalEntries, getThoughts, getCustomEvents, getChronicle, todayMonth, todayDay, currentYear]);
 
   // Group events by year, sorted newest first
   const yearGroups = useMemo<YearGroup[]>(() => {
@@ -222,7 +186,7 @@ export function OnThisDay() {
       .sort((a, b) => b.year - a.year);
   }, [events, currentYear]);
 
-  if (isLoading) {
+  if (!isLoaded) {
     return (
       <div className="p-6">
         <div className="skeleton h-8 w-48 mb-2" />

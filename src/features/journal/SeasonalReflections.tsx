@@ -1,19 +1,6 @@
-import { useState, useEffect, useMemo, useCallback, memo } from 'react';
-
-// --- Types ---
-interface Reflection {
-  id: string;
-  quarter: 1 | 2 | 3 | 4;
-  year: number;
-  wentWell: string;
-  challenging: string;
-  grateful: string;
-  focus: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-const STORAGE_KEY = 'life-os-reflections';
+import { useState, useMemo, useCallback, memo } from 'react';
+import type { Reflection } from '@/types/journal.types';
+import { useData } from '@/services/DataContext';
 
 const QUARTER_LABELS: Record<number, string> = {
   1: 'Q1 (Jan\u2013Mar)',
@@ -36,20 +23,6 @@ function formatDateAU(isoDate: string): string {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
   return `${day}/${month}/${year}`;
-}
-
-// --- Data helpers ---
-function loadReflections(): Reflection[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveReflections(reflections: Reflection[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(reflections));
 }
 
 // --- Skeleton ---
@@ -165,8 +138,7 @@ const PastReflectionCard = memo(function PastReflectionCard({
 
 // --- Main Component ---
 export function SeasonalReflections() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [reflections, setReflections] = useState<Reflection[]>([]);
+  const { getReflections, setReflections: setReflectionsInContext, isLoaded } = useData();
 
   // Current reflection form state
   const [wentWell, setWentWell] = useState('');
@@ -174,16 +146,16 @@ export function SeasonalReflections() {
   const [grateful, setGrateful] = useState('');
   const [focus, setFocus] = useState('');
   const [saveMessage, setSaveMessage] = useState('');
+  const [hasPreFilled, setHasPreFilled] = useState(false);
 
   const currentQuarter = useMemo(() => getCurrentQuarter(), []);
   const currentYear = useMemo(() => new Date().getFullYear(), []);
 
-  useEffect(() => {
-    const loaded = loadReflections();
-    setReflections(loaded);
+  const reflections = isLoaded ? getReflections() : [];
 
-    // Pre-fill if a reflection for the current quarter already exists
-    const existing = loaded.find(
+  // Pre-fill if a reflection for the current quarter already exists
+  if (isLoaded && !hasPreFilled) {
+    const existing = reflections.find(
       (r) => r.quarter === currentQuarter && r.year === currentYear,
     );
     if (existing) {
@@ -192,10 +164,8 @@ export function SeasonalReflections() {
       setGrateful(existing.grateful);
       setFocus(existing.focus);
     }
-
-    const timer = setTimeout(() => setIsLoading(false), 300);
-    return () => clearTimeout(timer);
-  }, [currentQuarter, currentYear]);
+    setHasPreFilled(true);
+  }
 
   // Past reflections (excluding current quarter), newest first
   const pastReflections = useMemo(
@@ -242,27 +212,25 @@ export function SeasonalReflections() {
       updated = [...reflections, newReflection];
     }
 
-    setReflections(updated);
-    saveReflections(updated);
+    setReflectionsInContext(updated);
     setSaveMessage('Reflection saved');
 
     const timer = setTimeout(() => setSaveMessage(''), 2000);
     return () => clearTimeout(timer);
-  }, [reflections, currentQuarter, currentYear, wentWell, challenging, grateful, focus]);
+  }, [reflections, currentQuarter, currentYear, wentWell, challenging, grateful, focus, setReflectionsInContext]);
 
   const handleDelete = useCallback(
     (id: string) => {
       const updated = reflections.filter((r) => r.id !== id);
-      setReflections(updated);
-      saveReflections(updated);
+      setReflectionsInContext(updated);
     },
-    [reflections],
+    [reflections, setReflectionsInContext],
   );
 
   const textareaClasses =
     'w-full rounded-lg px-3 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] text-text-primary font-body text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/50 min-h-[80px] resize-y';
 
-  if (isLoading) {
+  if (!isLoaded) {
     return (
       <div className="p-6">
         <div className="skeleton h-8 w-56 mb-2" />

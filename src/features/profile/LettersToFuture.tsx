@@ -1,24 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, memo } from 'react';
+import { useData } from '@/services/DataContext';
 import type { LetterToFuture } from '@/types/journal.types';
-
-const LETTERS_KEY = 'life-os-letters';
-
-function loadLetters(): LetterToFuture[] {
-  try {
-    const raw = localStorage.getItem(LETTERS_KEY);
-    return raw ? (JSON.parse(raw) as LetterToFuture[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveLetters(letters: LetterToFuture[]): void {
-  localStorage.setItem(LETTERS_KEY, JSON.stringify(letters));
-}
-
-function generateId(): string {
-  return `letter-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
 
 function formatDateAU(isoDate: string): string {
   if (!isoDate) return '';
@@ -162,17 +144,17 @@ const LetterCard = memo(function LetterCard({ letter, onDelete }: LetterCardProp
 });
 
 export function LettersToFuture() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [letters, setLettersState] = useState<LetterToFuture[]>([]);
+  const { isLoaded, getLetters, setLetters } = useData();
+  const letters = getLetters();
   const [showForm, setShowForm] = useState(false);
   const [formContent, setFormContent] = useState('');
   const [formUnlockDate, setFormUnlockDate] = useState('');
 
-  // Load letters and auto-unlock any that have reached their date
+  // Auto-unlock any letters that have reached their date
   useEffect(() => {
-    const stored = loadLetters();
+    if (!isLoaded) return;
     let changed = false;
-    const updated = stored.map((letter) => {
+    const updated = letters.map((letter) => {
       if (!letter.isUnlocked && isUnlockable(letter.unlockDate)) {
         changed = true;
         return { ...letter, isUnlocked: true };
@@ -180,11 +162,9 @@ export function LettersToFuture() {
       return letter;
     });
     if (changed) {
-      saveLetters(updated);
+      setLetters(updated);
     }
-    setLettersState(updated);
-    setIsLoading(false);
-  }, []);
+  }, [isLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sortedLetters = useMemo(
     () => [...letters].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
@@ -201,7 +181,7 @@ export function LettersToFuture() {
     if (!formContent.trim() || !formUnlockDate) return;
 
     const newLetter: LetterToFuture = {
-      id: generateId(),
+      id: crypto.randomUUID(),
       content: formContent.trim(),
       unlockDate: formUnlockDate,
       createdAt: new Date().toISOString(),
@@ -209,18 +189,14 @@ export function LettersToFuture() {
     };
 
     const updated = [newLetter, ...letters];
-    setLettersState(updated);
-    saveLetters(updated);
+    setLetters(updated);
     resetForm();
-  }, [formContent, formUnlockDate, letters, resetForm]);
+  }, [formContent, formUnlockDate, letters, setLetters, resetForm]);
 
   const handleDelete = useCallback((id: string) => {
-    setLettersState((prev) => {
-      const updated = prev.filter((l) => l.id !== id);
-      saveLetters(updated);
-      return updated;
-    });
-  }, []);
+    const updated = letters.filter((l) => l.id !== id);
+    setLetters(updated);
+  }, [letters, setLetters]);
 
   // Minimum date for the date picker: tomorrow
   const minDate = useMemo(() => {
@@ -229,7 +205,7 @@ export function LettersToFuture() {
     return tomorrow.toISOString().split('T')[0];
   }, []);
 
-  if (isLoading) {
+  if (!isLoaded) {
     return (
       <div className="p-6">
         <h2 className="text-2xl font-display font-bold text-text-primary mb-6">

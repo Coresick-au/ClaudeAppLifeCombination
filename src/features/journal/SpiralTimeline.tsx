@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import type { EventCategory } from '../../types/shared.types';
 import { EVENT_CATEGORY_COLOURS } from '../../types/shared.types';
-import type { ChronicleAnswer } from '../../types/chronicle.types';
 import { getSpiralPoint } from '../../utils/spiral';
+import { useData } from '@/services/DataContext';
 
 // --- Types ---
 interface SpiralEvent {
@@ -18,85 +18,6 @@ interface TooltipData {
   x: number;
   y: number;
   event: SpiralEvent;
-}
-
-// --- Data loading ---
-function loadBirthDate(): string | null {
-  try {
-    const raw = localStorage.getItem('life-os-chronicle');
-    if (!raw) return null;
-    const chronicle = JSON.parse(raw) as { answers: Record<string, ChronicleAnswer> };
-    const birthAnswer = chronicle.answers?.['birth_birth-date'];
-    return birthAnswer?.value ?? null;
-  } catch {
-    return null;
-  }
-}
-
-function loadSpiralEvents(): SpiralEvent[] {
-  const events: SpiralEvent[] = [];
-
-  try {
-    const journalRaw = localStorage.getItem('life-os-journal');
-    if (journalRaw) {
-      const entries = JSON.parse(journalRaw) as Array<{
-        id: string; title: string; content: string;
-        category: EventCategory; date: string;
-      }>;
-      for (const e of entries) {
-        events.push({
-          id: `j-${e.id}`,
-          title: e.title,
-          content: e.content.length > 120 ? e.content.slice(0, 120) + '\u2026' : e.content,
-          date: e.date,
-          category: e.category,
-          source: 'Journal',
-        });
-      }
-    }
-  } catch { /* ignore */ }
-
-  try {
-    const customRaw = localStorage.getItem('life-os-custom-events');
-    if (customRaw) {
-      const customs = JSON.parse(customRaw) as Array<{
-        id: string; title: string; description: string;
-        category: EventCategory; date: string;
-      }>;
-      for (const c of customs) {
-        events.push({
-          id: `c-${c.id}`,
-          title: c.title,
-          content: c.description.length > 120 ? c.description.slice(0, 120) + '\u2026' : c.description,
-          date: c.date,
-          category: c.category,
-          source: 'Event',
-        });
-      }
-    }
-  } catch { /* ignore */ }
-
-  try {
-    const chronicleRaw = localStorage.getItem('life-os-chronicle');
-    if (chronicleRaw) {
-      const chronicle = JSON.parse(chronicleRaw) as { answers: Record<string, ChronicleAnswer> };
-      if (chronicle.answers) {
-        for (const [key, answer] of Object.entries(chronicle.answers)) {
-          if (!answer.value || key === 'birth_birth-date') continue;
-          events.push({
-            id: `ch-${key}`,
-            title: `Chronicle: ${answer.questionId.replace(/-/g, ' ')}`,
-            content: answer.value.length > 120 ? answer.value.slice(0, 120) + '\u2026' : answer.value,
-            date: answer.answeredAt,
-            category: 'milestone',
-            source: 'Chronicle',
-          });
-        }
-      }
-    }
-  } catch { /* ignore */ }
-
-  return events;
 }
 
 function formatDateAU(isoDate: string): string {
@@ -125,22 +46,66 @@ function SpiralSkeleton() {
 export function SpiralTimeline() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [birthDate, setBirthDate] = useState<string | null>(null);
-  const [events, setEvents] = useState<SpiralEvent[]>([]);
+  const { getJournalEntries, getCustomEvents, getChronicle, isLoaded } = useData();
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
   const [canvasSize, setCanvasSize] = useState(600);
 
   // Track plotted dot positions for hit detection
   const plottedDotsRef = useRef<Array<{ x: number; y: number; event: SpiralEvent }>>([]);
 
-  useEffect(() => {
-    const bd = loadBirthDate();
-    setBirthDate(bd);
-    setEvents(loadSpiralEvents());
-    const timer = setTimeout(() => setIsLoading(false), 300);
-    return () => clearTimeout(timer);
-  }, []);
+  const chronicle = isLoaded ? getChronicle() : null;
+
+  const birthDate = useMemo(() => {
+    if (!chronicle?.answers) return null;
+    const birthAnswer = chronicle.answers['birth_birth-date'];
+    return birthAnswer?.value ?? null;
+  }, [chronicle]);
+
+  const events = useMemo<SpiralEvent[]>(() => {
+    if (!isLoaded) return [];
+
+    const result: SpiralEvent[] = [];
+
+    const journalEntries = getJournalEntries();
+    for (const e of journalEntries) {
+      result.push({
+        id: `j-${e.id}`,
+        title: e.title,
+        content: e.content.length > 120 ? e.content.slice(0, 120) + '\u2026' : e.content,
+        date: e.date,
+        category: e.category,
+        source: 'Journal',
+      });
+    }
+
+    const customEvents = getCustomEvents();
+    for (const c of customEvents) {
+      result.push({
+        id: `c-${c.id}`,
+        title: c.title,
+        content: c.description.length > 120 ? c.description.slice(0, 120) + '\u2026' : c.description,
+        date: c.date,
+        category: c.category,
+        source: 'Event',
+      });
+    }
+
+    if (chronicle?.answers) {
+      for (const [key, answer] of Object.entries(chronicle.answers)) {
+        if (!answer.value || key === 'birth_birth-date') continue;
+        result.push({
+          id: `ch-${key}`,
+          title: `Chronicle: ${answer.questionId.replace(/-/g, ' ')}`,
+          content: answer.value.length > 120 ? answer.value.slice(0, 120) + '\u2026' : answer.value,
+          date: answer.answeredAt,
+          category: 'milestone',
+          source: 'Chronicle',
+        });
+      }
+    }
+
+    return result;
+  }, [isLoaded, getJournalEntries, getCustomEvents, chronicle]);
 
   // Responsive canvas sizing
   useEffect(() => {
@@ -174,7 +139,7 @@ export function SpiralTimeline() {
   // Draw spiral
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !birthYear || isLoading) return;
+    if (!canvas || !birthYear || !isLoaded) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -267,7 +232,7 @@ export function SpiralTimeline() {
     ctx.fillText('B', birthPt.x, birthPt.y);
 
     plottedDotsRef.current = dots;
-  }, [canvasSize, birthYear, birthMonth, totalYears, events, isLoading]);
+  }, [canvasSize, birthYear, birthMonth, totalYears, events, isLoaded]);
 
   // Handle click/tap on canvas
   const handleCanvasClick = useCallback(
@@ -308,7 +273,7 @@ export function SpiralTimeline() {
 
   const handleDismissTooltip = useCallback(() => setTooltip(null), []);
 
-  if (isLoading) {
+  if (!isLoaded) {
     return (
       <div className="p-6">
         <div className="skeleton h-8 w-48 mb-6" />

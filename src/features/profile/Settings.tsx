@@ -138,10 +138,6 @@ export function Settings() {
 
   const handleResetConfirmSecond = useCallback(() => {
     startNew();
-    localStorage.removeItem('life-os-profile');
-    localStorage.removeItem('life-os-profile-photo');
-    localStorage.removeItem('life-os-connections');
-    localStorage.removeItem('life-os-letters');
     setResetStage('idle');
   }, [startNew]);
 

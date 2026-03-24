@@ -1,15 +1,8 @@
-import { useState, useCallback, useEffect, useMemo, memo } from 'react';
+import { useState, useCallback, useMemo, memo } from 'react';
 import type { EventCategory } from '../../types/shared.types';
 import { EVENT_CATEGORY_COLOURS } from '../../types/shared.types';
-
-interface CustomEventLocal {
-  id: string;
-  title: string;
-  description: string;
-  category: EventCategory;
-  date: string; // ISO string for localStorage
-  createdAt: string;
-}
+import { useData } from '@/services/DataContext';
+import type { CustomEventData } from '@/types/data.types';
 
 const CATEGORIES: EventCategory[] = [
   'career', 'family', 'home', 'education', 'travel',
@@ -26,19 +19,6 @@ function formatDateAU(isoDate: string): string {
 
 function todayISO(): string {
   return new Date().toISOString().split('T')[0] ?? '';
-}
-
-function loadEvents(): CustomEventLocal[] {
-  try {
-    const raw = localStorage.getItem('life-os-custom-events');
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveEvents(events: CustomEventLocal[]): void {
-  localStorage.setItem('life-os-custom-events', JSON.stringify(events));
 }
 
 // --- Skeleton ---
@@ -59,7 +39,7 @@ function EventsSkeleton() {
 
 // --- Event Card ---
 interface EventCardProps {
-  event: CustomEventLocal;
+  event: CustomEventData;
   onDelete: (id: string) => void;
 }
 
@@ -127,7 +107,7 @@ const EventCard = memo(function EventCard({ event, onDelete }: EventCardProps) {
 
 // --- Add Event Form ---
 interface AddFormProps {
-  onSave: (data: Omit<CustomEventLocal, 'id' | 'createdAt'>) => void;
+  onSave: (data: Omit<CustomEventData, 'id' | 'createdAt'>) => void;
   onCancel: () => void;
 }
 
@@ -229,15 +209,11 @@ function AddEventForm({ onSave, onCancel }: AddFormProps) {
 
 // --- Main CustomEvents Component ---
 export function CustomEvents() {
-  const [events, setEvents] = useState<CustomEventLocal[]>(() => loadEvents());
+  const { getCustomEvents, setCustomEvents, isLoaded } = useData();
+  const events = getCustomEvents();
   const [showForm, setShowForm] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Simulate initial load
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 300);
-    return () => clearTimeout(timer);
-  }, []);
+  const isLoading = !isLoaded;
 
   const sortedEvents = useMemo(
     () => [...events].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
@@ -245,27 +221,25 @@ export function CustomEvents() {
   );
 
   const handleSave = useCallback(
-    (data: Omit<CustomEventLocal, 'id' | 'createdAt'>) => {
-      const newEvent: CustomEventLocal = {
+    (data: Omit<CustomEventData, 'id' | 'createdAt'>) => {
+      const newEvent: CustomEventData = {
         ...data,
         id: crypto.randomUUID(),
         createdAt: new Date().toISOString(),
       };
       const updated = [...events, newEvent];
-      setEvents(updated);
-      saveEvents(updated);
+      setCustomEvents(updated);
       setShowForm(false);
     },
-    [events]
+    [events, setCustomEvents]
   );
 
   const handleDelete = useCallback(
     (id: string) => {
       const updated = events.filter((e) => e.id !== id);
-      setEvents(updated);
-      saveEvents(updated);
+      setCustomEvents(updated);
     },
-    [events]
+    [events, setCustomEvents]
   );
 
   const handleOpenForm = useCallback(() => setShowForm(true), []);

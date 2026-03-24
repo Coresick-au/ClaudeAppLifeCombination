@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, memo } from 'react';
+import { useMemo, memo } from 'react';
 import type { EventCategory } from '../../types/shared.types';
 import { EVENT_CATEGORY_COLOURS } from '../../types/shared.types';
-import type { ChronicleAnswer } from '../../types/chronicle.types';
+import { useData } from '@/services/DataContext';
 
 // --- Types ---
 interface EpochEvent {
@@ -32,72 +32,6 @@ const CATEGORY_LABELS: Record<EventCategory, string> = {
   relationships: 'Relationships',
   thoughts: 'Reflective',
 };
-
-// --- Data loading ---
-function loadAllEvents(): EpochEvent[] {
-  const events: EpochEvent[] = [];
-
-  try {
-    const journalRaw = localStorage.getItem('life-os-journal');
-    if (journalRaw) {
-      const entries = JSON.parse(journalRaw) as Array<{
-        id: string; title: string; category: EventCategory; date: string;
-      }>;
-      for (const e of entries) {
-        events.push({ id: `j-${e.id}`, date: e.date, category: e.category, title: e.title });
-      }
-    }
-  } catch { /* ignore */ }
-
-  try {
-    const thoughtsRaw = localStorage.getItem('life-os-thoughts');
-    if (thoughtsRaw) {
-      const thoughts = JSON.parse(thoughtsRaw) as Array<{
-        id: string; type: string; createdAt: string;
-      }>;
-      for (const t of thoughts) {
-        events.push({
-          id: `t-${t.id}`,
-          date: t.createdAt,
-          category: 'thoughts',
-          title: `${t.type.charAt(0).toUpperCase()}${t.type.slice(1)}`,
-        });
-      }
-    }
-  } catch { /* ignore */ }
-
-  try {
-    const customRaw = localStorage.getItem('life-os-custom-events');
-    if (customRaw) {
-      const customs = JSON.parse(customRaw) as Array<{
-        id: string; title: string; category: EventCategory; date: string;
-      }>;
-      for (const c of customs) {
-        events.push({ id: `c-${c.id}`, date: c.date, category: c.category, title: c.title });
-      }
-    }
-  } catch { /* ignore */ }
-
-  try {
-    const chronicleRaw = localStorage.getItem('life-os-chronicle');
-    if (chronicleRaw) {
-      const chronicle = JSON.parse(chronicleRaw) as { answers: Record<string, ChronicleAnswer> };
-      if (chronicle.answers) {
-        for (const [key, answer] of Object.entries(chronicle.answers)) {
-          if (!answer.value) continue;
-          events.push({
-            id: `ch-${key}`,
-            date: answer.answeredAt,
-            category: 'milestone',
-            title: answer.questionId.replace(/-/g, ' '),
-          });
-        }
-      }
-    }
-  } catch { /* ignore */ }
-
-  return events;
-}
 
 /**
  * Build epochs by grouping events into year buckets then merging
@@ -279,18 +213,52 @@ const EpochCard = memo(function EpochCard({ epoch }: EpochCardProps) {
 
 // --- Main Component ---
 export function Epochs() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [events, setEvents] = useState<EpochEvent[]>([]);
+  const { getJournalEntries, getThoughts, getCustomEvents, getChronicle, isLoaded } = useData();
 
-  useEffect(() => {
-    setEvents(loadAllEvents());
-    const timer = setTimeout(() => setIsLoading(false), 300);
-    return () => clearTimeout(timer);
-  }, []);
+  const events = useMemo<EpochEvent[]>(() => {
+    if (!isLoaded) return [];
+
+    const result: EpochEvent[] = [];
+
+    const journalEntries = getJournalEntries();
+    for (const e of journalEntries) {
+      result.push({ id: `j-${e.id}`, date: e.date, category: e.category, title: e.title });
+    }
+
+    const thoughts = getThoughts();
+    for (const t of thoughts) {
+      result.push({
+        id: `t-${t.id}`,
+        date: t.createdAt,
+        category: 'thoughts',
+        title: `${t.type.charAt(0).toUpperCase()}${t.type.slice(1)}`,
+      });
+    }
+
+    const customEvents = getCustomEvents();
+    for (const c of customEvents) {
+      result.push({ id: `c-${c.id}`, date: c.date, category: c.category, title: c.title });
+    }
+
+    const chronicle = getChronicle();
+    if (chronicle.answers) {
+      for (const [key, answer] of Object.entries(chronicle.answers)) {
+        if (!answer.value) continue;
+        result.push({
+          id: `ch-${key}`,
+          date: answer.answeredAt,
+          category: 'milestone',
+          title: answer.questionId.replace(/-/g, ' '),
+        });
+      }
+    }
+
+    return result;
+  }, [isLoaded, getJournalEntries, getThoughts, getCustomEvents, getChronicle]);
 
   const epochs = useMemo(() => buildEpochs(events), [events]);
 
-  if (isLoading) {
+  if (!isLoaded) {
     return (
       <div className="p-6">
         <div className="skeleton h-8 w-32 mb-2" />

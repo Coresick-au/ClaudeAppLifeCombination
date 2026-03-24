@@ -1,6 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import type { EventCategory } from '../../types/shared.types';
-import type { ChronicleAnswer } from '../../types/chronicle.types';
+import { useState, useMemo, useCallback } from 'react';
+import { useData } from '@/services/DataContext';
 
 const LIFESPAN_YEARS = 90;
 const WEEKS_PER_YEAR = 52;
@@ -16,68 +15,6 @@ interface HoveredCell {
   week: number;
   eventCount: number;
   lifeYear: number;
-}
-
-// --- Data loading ---
-function loadBirthDate(): string | null {
-  try {
-    const raw = localStorage.getItem('life-os-chronicle');
-    if (!raw) return null;
-    const chronicle = JSON.parse(raw) as { answers: Record<string, ChronicleAnswer> };
-    const birthAnswer = chronicle.answers?.['birth_birth-date'];
-    return birthAnswer?.value ?? null;
-  } catch {
-    return null;
-  }
-}
-
-function loadAllEventDates(): HeatmapEvent[] {
-  const events: HeatmapEvent[] = [];
-
-  try {
-    const journalRaw = localStorage.getItem('life-os-journal');
-    if (journalRaw) {
-      const entries = JSON.parse(journalRaw) as Array<{ id: string; date: string; category: EventCategory }>;
-      for (const e of entries) {
-        events.push({ id: `j-${e.id}`, date: e.date });
-      }
-    }
-  } catch { /* ignore */ }
-
-  try {
-    const thoughtsRaw = localStorage.getItem('life-os-thoughts');
-    if (thoughtsRaw) {
-      const thoughts = JSON.parse(thoughtsRaw) as Array<{ id: string; createdAt: string }>;
-      for (const t of thoughts) {
-        events.push({ id: `t-${t.id}`, date: t.createdAt });
-      }
-    }
-  } catch { /* ignore */ }
-
-  try {
-    const customRaw = localStorage.getItem('life-os-custom-events');
-    if (customRaw) {
-      const customs = JSON.parse(customRaw) as Array<{ id: string; date: string }>;
-      for (const c of customs) {
-        events.push({ id: `c-${c.id}`, date: c.date });
-      }
-    }
-  } catch { /* ignore */ }
-
-  try {
-    const chronicleRaw = localStorage.getItem('life-os-chronicle');
-    if (chronicleRaw) {
-      const chronicle = JSON.parse(chronicleRaw) as { answers: Record<string, ChronicleAnswer> };
-      if (chronicle.answers) {
-        for (const [key, answer] of Object.entries(chronicle.answers)) {
-          if (!answer.value || key === 'birth_birth-date') continue;
-          events.push({ id: `ch-${key}`, date: answer.answeredAt });
-        }
-      }
-    }
-  } catch { /* ignore */ }
-
-  return events;
 }
 
 /**
@@ -128,17 +65,46 @@ function HeatmapSkeleton() {
 
 // --- Main Component ---
 export function Heatmap() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [birthDate, setBirthDate] = useState<string | null>(null);
-  const [events, setEvents] = useState<HeatmapEvent[]>([]);
+  const { getJournalEntries, getThoughts, getCustomEvents, getChronicle, isLoaded } = useData();
   const [hovered, setHovered] = useState<HoveredCell | null>(null);
 
-  useEffect(() => {
-    setBirthDate(loadBirthDate());
-    setEvents(loadAllEventDates());
-    const timer = setTimeout(() => setIsLoading(false), 300);
-    return () => clearTimeout(timer);
-  }, []);
+  const chronicle = isLoaded ? getChronicle() : null;
+
+  const birthDate = useMemo(() => {
+    if (!chronicle?.answers) return null;
+    const birthAnswer = chronicle.answers['birth_birth-date'];
+    return birthAnswer?.value ?? null;
+  }, [chronicle]);
+
+  const events = useMemo<HeatmapEvent[]>(() => {
+    if (!isLoaded) return [];
+
+    const result: HeatmapEvent[] = [];
+
+    const journalEntries = getJournalEntries();
+    for (const e of journalEntries) {
+      result.push({ id: `j-${e.id}`, date: e.date });
+    }
+
+    const thoughts = getThoughts();
+    for (const t of thoughts) {
+      result.push({ id: `t-${t.id}`, date: t.createdAt });
+    }
+
+    const customEvents = getCustomEvents();
+    for (const c of customEvents) {
+      result.push({ id: `c-${c.id}`, date: c.date });
+    }
+
+    if (chronicle?.answers) {
+      for (const [key, answer] of Object.entries(chronicle.answers)) {
+        if (!answer.value || key === 'birth_birth-date') continue;
+        result.push({ id: `ch-${key}`, date: answer.answeredAt });
+      }
+    }
+
+    return result;
+  }, [isLoaded, getJournalEntries, getThoughts, getCustomEvents, chronicle]);
 
   const birthDateObj = useMemo(() => {
     if (!birthDate) return null;
@@ -183,7 +149,7 @@ export function Heatmap() {
 
   const handleCellLeave = useCallback(() => setHovered(null), []);
 
-  if (isLoading) {
+  if (!isLoaded) {
     return (
       <div className="p-6">
         <div className="skeleton h-8 w-40 mb-6" />

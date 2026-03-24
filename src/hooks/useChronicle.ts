@@ -2,39 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import type { ChronicleState, ChronicleAnswer } from '@/types/chronicle.types';
 import { CHAPTERS, TOTAL_QUESTIONS, TOTAL_XP } from '@/features/chronicle/chapters';
 import { ACHIEVEMENTS } from '@/features/chronicle/achievements';
-
-const STORAGE_KEY = 'life-os-chronicle';
-
-function createInitialState(): ChronicleState {
-  const now = new Date().toISOString();
-  return {
-    currentChapter: 0,
-    currentQuestion: 0,
-    xp: 0,
-    answers: {},
-    achievements: [],
-    customChapters: [],
-    customEvents: [],
-    startedAt: now,
-    lastPlayedAt: now,
-  };
-}
-
-function loadState(): ChronicleState {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored) as ChronicleState;
-    }
-  } catch {
-    // Corrupted state, start fresh
-  }
-  return createInitialState();
-}
-
-function persistState(state: ChronicleState) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
+import { useData } from '@/services/DataContext';
 
 interface NewAchievement {
   id: string;
@@ -44,13 +12,15 @@ interface NewAchievement {
 }
 
 export function useChronicle() {
-  const [state, setState] = useState<ChronicleState>(loadState);
+  const { getChronicle, setChronicle } = useData();
+
+  const [state, setState] = useState<ChronicleState>(() => getChronicle());
   const [newAchievements, setNewAchievements] = useState<NewAchievement[]>([]);
 
-  // Persist on every state change
+  // Sync local state to DataContext on every state change
   useEffect(() => {
-    persistState(state);
-  }, [state]);
+    setChronicle(state);
+  }, [state, setChronicle]);
 
   const currentChapterDef = useMemo(
     () => CHAPTERS[state.currentChapter],
@@ -194,7 +164,19 @@ export function useChronicle() {
   );
 
   const resetProgress = useCallback(() => {
-    setState(createInitialState());
+    const now = new Date().toISOString();
+    const initial: ChronicleState = {
+      currentChapter: 0,
+      currentQuestion: 0,
+      xp: 0,
+      answers: {},
+      achievements: [],
+      customChapters: [],
+      customEvents: [],
+      startedAt: now,
+      lastPlayedAt: now,
+    };
+    setState(initial);
     setNewAchievements([]);
   }, []);
 

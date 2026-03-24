@@ -6,9 +6,9 @@ import {
   useEffect,
   type ReactNode,
 } from 'react';
-import type { LifeOSData, CustomEventData, LifeOSSettings } from '@/types/data.types';
+import type { LifeOSData, CustomEventData, Connection, LifeOSSettings } from '@/types/data.types';
 import type { ChronicleState } from '@/types/chronicle.types';
-import type { JournalEntry, Thought, LetterToFuture } from '@/types/journal.types';
+import type { JournalEntry, Thought, LetterToFuture, Reflection } from '@/types/journal.types';
 import type { Property, SalaryRecord, SuperFund, FinancialSnapshot } from '@/types/wealth.types';
 import type { UserProfile } from '@/types/shared.types';
 import {
@@ -60,11 +60,15 @@ interface DataContextValue {
   getSettings: () => LifeOSSettings;
   setSettings: (settings: LifeOSSettings) => void;
 
+  // --- Reflections ---
+  getReflections: () => Reflection[];
+  setReflections: (reflections: Reflection[]) => void;
+
   // --- Letters & Connections ---
   getLetters: () => LetterToFuture[];
   setLetters: (letters: LetterToFuture[]) => void;
-  getConnections: () => Record<string, unknown>[];
-  setConnections: (connections: Record<string, unknown>[]) => void;
+  getConnections: () => Connection[];
+  setConnections: (connections: Connection[]) => void;
 }
 
 const DataContext = createContext<DataContextValue | null>(null);
@@ -225,6 +229,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [update],
   );
 
+  // --- Reflections ---
+
+  const getReflections = useCallback(() => data.reflections, [data.reflections]);
+  const setReflections = useCallback(
+    (reflections: Reflection[]) => update((prev) => ({ ...prev, reflections })),
+    [update],
+  );
+
   // --- Letters & Connections ---
 
   const getLetters = useCallback(() => data.letters, [data.letters]);
@@ -235,7 +247,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const getConnections = useCallback(() => data.connections, [data.connections]);
   const setConnections = useCallback(
-    (connections: Record<string, unknown>[]) => update((prev) => ({ ...prev, connections })),
+    (connections: Connection[]) => update((prev) => ({ ...prev, connections })),
     [update],
   );
 
@@ -266,6 +278,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setProfile,
     getSettings,
     setSettings,
+    getReflections,
+    setReflections,
     getLetters,
     setLetters,
     getConnections,

@@ -30,3 +30,15 @@ export interface LetterToFuture {
   createdAt: string;
   isUnlocked: boolean;
 }
+
+export interface Reflection {
+  id: string;
+  quarter: 1 | 2 | 3 | 4;
+  year: number;
+  wentWell: string;
+  challenging: string;
+  grateful: string;
+  focus: string;
+  createdAt: string;
+  updatedAt: string;
+}
