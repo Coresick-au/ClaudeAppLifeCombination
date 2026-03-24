@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, memo } from 'react';
+import { useState, useEffect, useRef, memo, useCallback } from 'react';
 
 interface TypewriterTextProps {
   text: string;
@@ -17,6 +17,8 @@ export const TypewriterText = memo(function TypewriterText({
   const [isComplete, setIsComplete] = useState(false);
   const indexRef = useRef(0);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
     setDisplayedText('');
@@ -29,7 +31,7 @@ export const TypewriterText = memo(function TypewriterText({
         setDisplayedText(text);
         setIsComplete(true);
         if (intervalRef.current) clearInterval(intervalRef.current);
-        onComplete?.();
+        onCompleteRef.current?.();
       } else {
         setDisplayedText(text.slice(0, indexRef.current));
       }
@@ -38,14 +40,14 @@ export const TypewriterText = memo(function TypewriterText({
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [text, speed, onComplete]);
+  }, [text, speed]);
 
-  const handleSkip = () => {
+  const handleSkip = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     setDisplayedText(text);
     setIsComplete(true);
-    onComplete?.();
-  };
+    onCompleteRef.current?.();
+  }, [text]);
 
   return (
     <div className={`relative ${className}`}>
