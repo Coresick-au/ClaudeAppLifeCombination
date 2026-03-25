@@ -102,6 +102,60 @@ export function useChronicle() {
     [currentChapterDef, currentQuestionDef, checkAchievements],
   );
 
+  const editAnswer = useCallback(
+    (key: string, newValue: string) => {
+      setState((prev) => {
+        const existingAnswer = prev.answers[key];
+        if (!existingAnswer) return prev;
+
+        const updatedAnswer: ChronicleAnswer = {
+          ...existingAnswer,
+          value: newValue,
+        };
+
+        const updatedState: ChronicleState = {
+          ...prev,
+          answers: { ...prev.answers, [key]: updatedAnswer },
+          lastPlayedAt: new Date().toISOString(),
+        };
+
+        return updatedState;
+      });
+    },
+    [],
+  );
+
+  const deleteAnswer = useCallback(
+    (key: string) => {
+      setState((prev) => {
+        const existingAnswer = prev.answers[key];
+        if (!existingAnswer) return prev;
+
+        // Find the question to subtract its XP
+        const [chapterId, ...questionParts] = key.split('_');
+        const questionId = questionParts.join('_');
+        const chapter = CHAPTERS.find((c) => c.id === chapterId);
+        const question = chapter?.questions.find((q) => q.id === questionId);
+        const xpToSubtract = question?.xp ?? 0;
+
+        const { [key]: _removed, ...remainingAnswers } = prev.answers;
+
+        const updatedState: ChronicleState = {
+          ...prev,
+          answers: remainingAnswers,
+          xp: Math.max(0, prev.xp - xpToSubtract),
+          lastPlayedAt: new Date().toISOString(),
+        };
+
+        // Re-check achievements (some may no longer be valid, but we keep them —
+        // achievements are earned permanently. Only check for new ones.)
+        updatedState.achievements = checkAchievements(updatedState);
+        return updatedState;
+      });
+    },
+    [checkAchievements],
+  );
+
   const skipQuestion = useCallback(() => {
     setState((prev) => {
       const chapter = CHAPTERS[prev.currentChapter];
@@ -204,5 +258,7 @@ export function useChronicle() {
     loadSampleData,
     resetProgress,
     dismissAchievement,
+    editAnswer,
+    deleteAnswer,
   };
 }

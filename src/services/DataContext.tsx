@@ -11,6 +11,7 @@ import type { ChronicleState } from '@/types/chronicle.types';
 import type { JournalEntry, Thought, LetterToFuture, Reflection } from '@/types/journal.types';
 import type { Property, SalaryRecord, SuperFund, FinancialSnapshot } from '@/types/wealth.types';
 import type { UserProfile } from '@/types/shared.types';
+import type { RPGState } from '@/types/rpg.types';
 import {
   createEmptyDataset,
   saveToFile,
@@ -35,6 +36,10 @@ interface DataContextValue {
   // --- Chronicle ---
   getChronicle: () => ChronicleState;
   setChronicle: (state: ChronicleState) => void;
+
+  // --- RPG ---
+  getRPG: () => RPGState;
+  setRPG: (state: RPGState) => void;
 
   // --- Journal ---
   getJournalEntries: () => JournalEntry[];
@@ -156,6 +161,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [update],
   );
 
+  // --- RPG ---
+
+  const getRPG = useCallback(() => data.rpg, [data.rpg]);
+  const setRPG = useCallback(
+    (state: RPGState) => update((prev) => ({ ...prev, rpg: state })),
+    [update],
+  );
+
   // --- Journal ---
 
   const getJournalEntries = useCallback(() => data.journal.entries, [data.journal.entries]);
@@ -260,6 +273,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     save,
     getChronicle,
     setChronicle,
+    getRPG,
+    setRPG,
     getJournalEntries,
     setJournalEntries,
     getThoughts,

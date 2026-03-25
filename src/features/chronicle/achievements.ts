@@ -33,13 +33,6 @@ const sideQuestAnswerCount = (state: ChronicleState): number => {
 
 export const ACHIEVEMENTS: Achievement[] = [
   {
-    id: 'first-answer',
-    title: 'First Words',
-    description: 'Answer your first question.',
-    icon: '✏️',
-    condition: (state) => answerCount(state) >= 1,
-  },
-  {
     id: 'chapter-1-complete',
     title: 'Origin Story',
     description: 'Complete Chapter 1 — every required question in your birth chapter answered.',
@@ -53,25 +46,18 @@ export const ACHIEVEMENTS: Achievement[] = [
     },
   },
   {
-    id: 'five-answers',
-    title: 'Getting Started',
-    description: 'Answer 5 questions.',
+    id: 'fifteen-answers',
+    title: 'Finding Your Voice',
+    description: 'Answer 15 questions.',
     icon: '📝',
-    condition: (state) => answerCount(state) >= 5,
+    condition: (state) => answerCount(state) >= 15,
   },
   {
-    id: 'ten-answers',
-    title: 'Chronicler',
-    description: 'Answer 10 questions.',
-    icon: '📖',
-    condition: (state) => answerCount(state) >= 10,
-  },
-  {
-    id: 'twenty-answers',
+    id: 'thirty-answers',
     title: 'Seasoned Storyteller',
-    description: 'Answer 20 questions.',
+    description: 'Answer 30 questions.',
     icon: '🎙️',
-    condition: (state) => answerCount(state) >= 20,
+    condition: (state) => answerCount(state) >= 30,
   },
   {
     id: 'fifty-answers',
@@ -79,6 +65,20 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: 'Answer 50 questions.',
     icon: '🏆',
     condition: (state) => answerCount(state) >= 50,
+  },
+  {
+    id: 'seventy-five-answers',
+    title: 'Living Archive',
+    description: 'Answer 75 questions.',
+    icon: '📚',
+    condition: (state) => answerCount(state) >= 75,
+  },
+  {
+    id: 'hundred-answers',
+    title: 'Complete Record',
+    description: 'Answer 100 questions.',
+    icon: '🏛️',
+    condition: (state) => answerCount(state) >= 100,
   },
   {
     id: 'all-chapters-started',
@@ -92,11 +92,11 @@ export const ACHIEVEMENTS: Achievement[] = [
     },
   },
   {
-    id: 'xp-100',
-    title: 'Level Up',
-    description: 'Earn 100 XP.',
-    icon: '⬆️',
-    condition: (state) => state.xp >= 100,
+    id: 'xp-250',
+    title: 'Power Surge',
+    description: 'Earn 250 XP.',
+    icon: '⚡',
+    condition: (state) => state.xp >= 250,
   },
   {
     id: 'xp-500',
@@ -113,11 +113,18 @@ export const ACHIEVEMENTS: Achievement[] = [
     condition: (state) => state.xp >= 1000,
   },
   {
-    id: 'side-quest-5',
+    id: 'xp-2000',
+    title: 'Transcendent',
+    description: 'Earn 2000 XP.',
+    icon: '💫',
+    condition: (state) => state.xp >= 2000,
+  },
+  {
+    id: 'side-quest-10',
     title: 'Completionist',
-    description: 'Answer 5 side quest (non-required) questions.',
+    description: 'Answer 10 side quest (non-required) questions.',
     icon: '🧩',
-    condition: (state) => sideQuestAnswerCount(state) >= 5,
+    condition: (state) => sideQuestAnswerCount(state) >= 10,
   },
   {
     id: 'photo-attached',

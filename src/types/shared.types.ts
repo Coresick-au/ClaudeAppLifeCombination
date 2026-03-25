@@ -3,7 +3,7 @@ export type UserTheme = 'hearthstone' | 'meadow';
 
 export type Pillar = 'record' | 'reflect' | 'wealth' | 'me';
 
-export type RecordTab = 'chronicle' | 'journal' | 'thoughts' | 'custom-events';
+export type RecordTab = 'chronicle' | 'rpg' | 'journal' | 'thoughts' | 'custom-events';
 export type ReflectTab = 'spiral' | 'timeline' | 'heatmap' | 'on-this-day' | 'epochs' | 'reflections';
 export type WealthTab = 'dashboard' | 'properties' | 'salary' | 'super' | 'spending';
 export type MeTab = 'profile' | 'connections' | 'letters' | 'export' | 'settings';

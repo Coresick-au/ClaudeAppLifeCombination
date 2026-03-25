@@ -21,6 +21,8 @@ export function ChronicleEngine() {
     submitAnswer,
     skipQuestion,
     rewind,
+    editAnswer,
+    deleteAnswer,
     loadSampleData,
     resetProgress,
     dismissAchievement,
@@ -148,6 +150,8 @@ export function ChronicleEngine() {
           currentChapter={state.currentChapter}
           currentQuestion={state.currentQuestion}
           onRewind={handleRewind}
+          onEditAnswer={editAnswer}
+          onDeleteAnswer={deleteAnswer}
           onClose={() => setShowQuestLog(false)}
         />
       )}

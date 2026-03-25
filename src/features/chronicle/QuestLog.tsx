@@ -1,16 +1,19 @@
-import { useMemo, useCallback, memo } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import type { ChapterDefinition, ChronicleAnswer } from '@/types/chronicle.types';
 
 type QuestStatus = 'completed' | 'skipped' | 'undiscovered' | 'current';
 
-interface QuestItem {
+interface QuestItemData {
   chapterIndex: number;
   chapterTitle: string;
+  chapterId: string;
   questionId: string;
   prompt: string;
   required: boolean;
   xp: number;
   status: QuestStatus;
+  answerValue: string;
+  answerKey: string;
 }
 
 interface QuestLogProps {
@@ -19,6 +22,8 @@ interface QuestLogProps {
   currentChapter: number;
   currentQuestion: number;
   onRewind: (chapterIndex: number, questionIndex: number) => void;
+  onEditAnswer?: (key: string, newValue: string) => void;
+  onDeleteAnswer?: (key: string) => void;
   onClose: () => void;
 }
 
@@ -28,10 +33,12 @@ export const QuestLog = memo(function QuestLog({
   currentChapter,
   currentQuestion,
   onRewind,
+  onEditAnswer,
+  onDeleteAnswer,
   onClose,
 }: QuestLogProps) {
   const quests = useMemo(() => {
-    const items: QuestItem[] = [];
+    const items: QuestItemData[] = [];
     chapters.forEach((chapter, chIdx) => {
       chapter.questions.forEach((q, _qIdx) => {
         const key = `${chapter.id}_${q.id}`;
@@ -56,11 +63,14 @@ export const QuestLog = memo(function QuestLog({
         items.push({
           chapterIndex: chIdx,
           chapterTitle: chapter.title,
+          chapterId: chapter.id,
           questionId: q.id,
           prompt: q.prompt,
           required: q.required,
           xp: q.xp,
           status,
+          answerValue: answers[key]?.value ?? '',
+          answerKey: key,
         });
       });
     });
@@ -77,7 +87,7 @@ export const QuestLog = memo(function QuestLog({
 
   // Group by chapter
   const grouped = useMemo(() => {
-    const groups = new Map<string, QuestItem[]>();
+    const groups = new Map<string, QuestItemData[]>();
     for (const q of quests) {
       const existing = groups.get(q.chapterTitle) ?? [];
       existing.push(q);
@@ -116,11 +126,13 @@ export const QuestLog = memo(function QuestLog({
               </h3>
               <div className="space-y-2">
                 {items.map((q) => (
-                  <QuestItem
+                  <QuestItemRow
                     key={`${q.chapterIndex}_${q.questionId}`}
                     quest={q}
                     chapters={chapters}
                     onRewind={onRewind}
+                    onEditAnswer={onEditAnswer}
+                    onDeleteAnswer={onDeleteAnswer}
                   />
                 ))}
               </div>
@@ -149,15 +161,23 @@ const Badge = memo(function Badge({
   );
 });
 
-const QuestItem = memo(function QuestItem({
+const QuestItemRow = memo(function QuestItemRow({
   quest,
   chapters,
   onRewind,
+  onEditAnswer,
+  onDeleteAnswer,
 }: {
-  quest: QuestItem;
+  quest: QuestItemData;
   chapters: ChapterDefinition[];
   onRewind: (chapterIndex: number, questionIndex: number) => void;
+  onEditAnswer?: (key: string, newValue: string) => void;
+  onDeleteAnswer?: (key: string) => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState(quest.answerValue);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
   const handleRewind = useCallback(() => {
     const chapter = chapters[quest.chapterIndex];
     if (!chapter) return;
@@ -166,6 +186,20 @@ const QuestItem = memo(function QuestItem({
       onRewind(quest.chapterIndex, qIdx);
     }
   }, [quest, chapters, onRewind]);
+
+  const handleSaveEdit = useCallback(() => {
+    if (editValue.trim() && onEditAnswer) {
+      onEditAnswer(quest.answerKey, editValue.trim());
+    }
+    setEditing(false);
+  }, [editValue, onEditAnswer, quest.answerKey]);
+
+  const handleDelete = useCallback(() => {
+    if (onDeleteAnswer) {
+      onDeleteAnswer(quest.answerKey);
+    }
+    setConfirmDelete(false);
+  }, [onDeleteAnswer, quest.answerKey]);
 
   const statusIcon =
     quest.status === 'completed'
@@ -177,10 +211,11 @@ const QuestItem = memo(function QuestItem({
           : '❓';
 
   const canRewind = quest.status === 'skipped' || quest.status === 'undiscovered';
+  const isCompleted = quest.status === 'completed';
 
   return (
     <div
-      className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
+      className={`flex flex-col gap-2 p-3 rounded-lg border transition-colors ${
         quest.status === 'completed'
           ? 'bg-green-500/5 border-green-500/20'
           : quest.status === 'current'
@@ -188,41 +223,114 @@ const QuestItem = memo(function QuestItem({
             : 'bg-transparent border-[var(--color-border)]'
       }`}
     >
-      <span className="text-lg mt-0.5">{statusIcon}</span>
-      <div className="flex-1 min-w-0">
-        <p
-          className={`text-sm leading-snug ${
-            quest.status === 'undiscovered'
-              ? 'text-text-secondary italic'
-              : 'text-text-primary'
-          }`}
-        >
-          {quest.status === 'undiscovered'
-            ? 'Undiscovered quest...'
-            : quest.prompt}
-        </p>
-        <div className="flex items-center gap-2 mt-1">
-          <span className="text-[0.65rem] text-accent font-medium">
-            {quest.xp} XP
-          </span>
-          <span
-            className={`text-[0.6rem] px-1.5 py-0.5 rounded font-medium ${
-              quest.required
-                ? 'bg-accent/10 text-accent'
-                : 'bg-text-secondary/10 text-text-secondary'
+      <div className="flex items-start gap-3">
+        <span className="text-lg mt-0.5">{statusIcon}</span>
+        <div className="flex-1 min-w-0">
+          <p
+            className={`text-sm leading-snug ${
+              quest.status === 'undiscovered'
+                ? 'text-text-secondary italic'
+                : 'text-text-primary'
             }`}
           >
-            {quest.required ? 'MAIN' : 'SIDE'}
-          </span>
+            {quest.status === 'undiscovered'
+              ? 'Undiscovered quest...'
+              : quest.prompt}
+          </p>
+          {isCompleted && !editing && (
+            <p className="text-xs text-text-secondary mt-1 font-body italic line-clamp-2">
+              {quest.answerValue}
+            </p>
+          )}
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-[0.65rem] text-accent font-medium">
+              {quest.xp} XP
+            </span>
+            <span
+              className={`text-[0.6rem] px-1.5 py-0.5 rounded font-medium ${
+                quest.required
+                  ? 'bg-accent/10 text-accent'
+                  : 'bg-text-secondary/10 text-text-secondary'
+              }`}
+            >
+              {quest.required ? 'MAIN' : 'SIDE'}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {canRewind && (
+            <button
+              onClick={handleRewind}
+              className="text-xs text-accent hover:text-accent-hover font-medium px-2 py-1 rounded border border-accent/30 hover:border-accent/60 transition-colors"
+            >
+              Rewind
+            </button>
+          )}
+          {isCompleted && onEditAnswer && (
+            <button
+              onClick={() => { setEditing(true); setEditValue(quest.answerValue); }}
+              className="text-xs text-text-secondary hover:text-accent px-1.5 py-1 transition-colors"
+              title="Edit answer"
+            >
+              ✎
+            </button>
+          )}
+          {isCompleted && onDeleteAnswer && (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="text-xs text-text-secondary hover:text-red-400 px-1.5 py-1 transition-colors"
+              title="Delete answer"
+            >
+              &times;
+            </button>
+          )}
         </div>
       </div>
-      {canRewind && (
-        <button
-          onClick={handleRewind}
-          className="text-xs text-accent hover:text-accent-hover font-medium px-2 py-1 rounded border border-accent/30 hover:border-accent/60 transition-colors shrink-0"
-        >
-          Rewind
-        </button>
+
+      {/* Inline edit */}
+      {editing && (
+        <div className="ml-9 space-y-2">
+          <textarea
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            rows={3}
+            className="w-full bg-[var(--color-input-bg)] border border-[var(--color-input-border)] rounded-lg px-3 py-2 text-text-primary font-body text-sm focus:outline-none focus:border-accent resize-none"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={handleSaveEdit}
+              disabled={!editValue.trim()}
+              className="px-3 py-1 rounded-lg bg-[var(--color-accent)] text-white text-xs font-body hover:bg-[var(--color-accent-hover)] transition-colors disabled:opacity-40"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => setEditing(false)}
+              className="px-3 py-1 rounded-lg text-xs text-text-secondary hover:text-text-primary transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation */}
+      {confirmDelete && (
+        <div className="ml-9 flex items-center gap-2">
+          <span className="text-xs text-text-secondary font-body">Remove this answer?</span>
+          <button
+            onClick={handleDelete}
+            className="px-2 py-1 rounded text-xs bg-red-600 text-white hover:bg-red-700 transition-colors"
+          >
+            Yes
+          </button>
+          <button
+            onClick={() => setConfirmDelete(false)}
+            className="px-2 py-1 rounded text-xs text-text-secondary hover:text-text-primary transition-colors"
+          >
+            No
+          </button>
+        </div>
       )}
     </div>
   );

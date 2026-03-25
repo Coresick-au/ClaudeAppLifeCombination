@@ -1,4 +1,5 @@
 import type { LifeOSData } from '@/types/data.types';
+import { createInitialRPGState } from './rpg.service';
 
 const CURRENT_VERSION = 1;
 const FILE_EXTENSION = '.lifeos.json';
@@ -36,6 +37,8 @@ export function createEmptyDataset(): LifeOSData {
       startedAt: now,
       lastPlayedAt: now,
     },
+
+    rpg: createInitialRPGState(),
 
     journal: {
       entries: [],
@@ -145,6 +148,7 @@ function validateData(data: unknown): LifeOSData {
     profile: { ...defaults.profile, ...(obj.profile as Record<string, unknown>) },
     settings: { ...defaults.settings, ...(obj.settings as Record<string, unknown>) },
     chronicle: { ...defaults.chronicle, ...(obj.chronicle as Record<string, unknown>) },
+    rpg: { ...defaults.rpg, ...(obj.rpg as Record<string, unknown> ?? {}) },
     journal: { ...defaults.journal, ...(obj.journal as Record<string, unknown>) },
     wealth: { ...defaults.wealth, ...(obj.wealth as Record<string, unknown>) },
   } as LifeOSData;

@@ -3,6 +3,7 @@ import type { JournalEntry, Thought, LetterToFuture, Reflection } from './journa
 import type { Property, SalaryRecord, SuperFund, FinancialSnapshot } from './wealth.types';
 import type { UserProfile } from './shared.types';
 import type { EventCategory } from './shared.types';
+import type { RPGState } from './rpg.types';
 
 export interface CustomEventData {
   id: string;
@@ -37,6 +38,8 @@ export interface LifeOSData {
   settings: LifeOSSettings;
 
   chronicle: ChronicleState;
+
+  rpg: RPGState;
 
   journal: {
     entries: JournalEntry[];

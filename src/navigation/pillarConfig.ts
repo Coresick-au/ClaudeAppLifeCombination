@@ -7,6 +7,7 @@ export const PILLARS: readonly PillarConfig[] = [
     icon: '📜',
     tabs: [
       { id: 'chronicle', label: 'Chronicle' },
+      { id: 'rpg', label: 'RPG' },
       { id: 'journal', label: 'Journal' },
       { id: 'thoughts', label: 'Thoughts' },
       { id: 'custom-events', label: 'Events' },

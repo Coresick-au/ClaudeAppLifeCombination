@@ -8,6 +8,7 @@ import { PILLARS } from '@/navigation/pillarConfig';
 
 // Record pillar
 import { ChronicleEngine } from '@/features/chronicle/ChronicleEngine';
+import { RPGDashboard } from '@/features/rpg/RPGDashboard';
 import { Journal } from '@/features/journal/Journal';
 import { Thoughts } from '@/features/journal/Thoughts';
 import { CustomEvents } from '@/features/journal/CustomEvents';
@@ -37,6 +38,7 @@ import { Settings } from '@/features/profile/Settings';
 const TAB_COMPONENTS: Record<string, React.ComponentType> = {
   // Record
   chronicle: ChronicleEngine,
+  rpg: RPGDashboard,
   journal: Journal,
   thoughts: Thoughts,
   'custom-events': CustomEvents,
